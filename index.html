@@ -1,0 +1,3018 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F6F7F4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0F1412" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Themengebiete">
+<meta name="robots" content="noindex, nofollow">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%9A%3C/text%3E%3C/svg%3E">
+<title>Themengebiete</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+
+</head>
+<body>
+<style id="app-style">
+:root{
+  --bg:#F6F7F4; --surface:#FFFFFF; --surface-2:#EFF1EC;
+  --ink:#161B18; --ink-2:#3A443E; --muted:#66736B;
+  --line:#DCE2DB; --line-2:#C7D0C6;
+  --accent:#1E6B4F; --accent-ink:#0E4433; --accent-soft:#E3EFE8; --accent-line:#B7D5C6;
+  --on-accent:#FFFFFF;
+  --danger:#9A3B2C; --danger-soft:#F6E6E2;
+  --shadow:0 1px 2px rgba(22,27,24,.05), 0 8px 24px -16px rgba(22,27,24,.25);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F1412; --surface:#161D19; --surface-2:#1D2621;
+    --ink:#E8EDE9; --ink-2:#C3CEC7; --muted:#8E9C94;
+    --line:#26302B; --line-2:#354039;
+    --accent:#5FC79A; --accent-ink:#A8E3C7; --accent-soft:#1A2C24; --accent-line:#2C4A3B;
+    --on-accent:#0F1412;
+    --danger:#E08C7B; --danger-soft:#31201C;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F1412; --surface:#161D19; --surface-2:#1D2621;
+  --ink:#E8EDE9; --ink-2:#C3CEC7; --muted:#8E9C94;
+  --line:#26302B; --line-2:#354039;
+  --accent:#5FC79A; --accent-ink:#A8E3C7; --accent-soft:#1A2C24; --accent-line:#2C4A3B;
+  --on-accent:#0F1412;
+  --danger:#E08C7B; --danger-soft:#31201C;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.7);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size:15px; line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+button, input, textarea, select{font:inherit; color:inherit}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:3px}
+
+/* ---------- shell ---------- */
+html{height:100%}
+body{height:100%; overflow:hidden}
+.app{height:100%; display:flex; flex-direction:column; overflow:hidden}
+
+.topbar{
+  flex:none; display:flex; align-items:center; justify-content:flex-end; gap:14px;
+  padding:10px 18px; background:var(--surface);
+  border-bottom:1px solid var(--line); z-index:20;
+}
+#undo-btn{font-size:16px; line-height:1; padding:5px 10px}
+#accent-btn{padding:6px 10px; display:flex; align-items:center}
+.swatch{
+  display:block; width:13px; height:13px; border-radius:50%;
+  background:var(--accent); box-shadow:0 0 0 1px var(--line-2);
+}
+.choice .dot{
+  display:inline-block; width:11px; height:11px; border-radius:50%;
+  margin-right:9px; vertical-align:-1px; box-shadow:0 0 0 1px var(--line-2);
+}
+.status{
+  font-size:12px; color:var(--muted); white-space:nowrap;
+  display:flex; align-items:center; gap:6px;
+}
+.status .dot{width:6px; height:6px; border-radius:50%; background:var(--line-2)}
+.status.dirty .dot{background:var(--accent)}
+.status.dirty{color:var(--accent)}
+
+.btn{
+  border:1px solid var(--line-2); background:var(--surface); color:var(--ink);
+  padding:6px 12px; border-radius:6px; cursor:pointer; font-size:13px; font-weight:500;
+  transition:background .12s ease, border-color .12s ease;
+}
+.btn:hover{background:var(--surface-2); border-color:var(--muted)}
+.btn:disabled{opacity:.4; cursor:default}
+.btn:disabled:hover{background:var(--surface); border-color:var(--line-2)}
+.btn.primary{background:var(--accent); border-color:var(--accent); color:var(--on-accent)}
+.btn.primary:hover{filter:brightness(1.08); background:var(--accent)}
+.btn.ghost{border-color:transparent; background:transparent; color:var(--muted)}
+.btn.ghost:hover{background:var(--surface-2); color:var(--ink)}
+.btn.danger:hover{background:var(--danger-soft); border-color:var(--danger); color:var(--danger)}
+.btn.sm{padding:3px 8px; font-size:12px}
+
+.body{flex:1 1 auto; display:flex; align-items:stretch; min-height:0; overflow:hidden}
+
+/* ---------- rail ---------- */
+.rail{
+  width:288px; flex:none; background:var(--surface);
+  border-right:1px solid var(--line);
+  padding:16px 12px 32px; min-height:0; overflow-y:auto; overscroll-behavior:contain;
+  display:flex; flex-direction:column; gap:22px;
+}
+.group{display:flex; flex-direction:column; gap:2px}
+.group-head{
+  position:relative; display:flex; align-items:center; gap:4px;
+  padding:0 6px 6px; border-bottom:1px solid var(--line); margin-bottom:6px;
+}
+.group-toggle{
+  flex:1; min-width:0; display:flex; align-items:center; gap:7px;
+  border:none; background:transparent; cursor:pointer; padding:2px 0;
+  font-size:10.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--muted); text-align:left; border-radius:5px;
+}
+.group-toggle:hover{color:var(--ink)}
+.group-toggle .chev{
+  flex:none; width:9px; font-size:9px; line-height:1;
+  transition:transform .12s ease; transform-origin:50% 50%;
+}
+.group.collapsed .group-toggle .chev{transform:rotate(-90deg)}
+/* Die Themen bleiben im Dokument und werden nur zusammengefahren — so kann es
+   weich laufen, statt die Leiste bei jedem Klick neu aufzubauen. */
+.group-list{overflow:hidden; transition:height .18s ease}
+.group .group-toggle .cnt{display:none}
+.group.collapsed .group-toggle .cnt{display:inline}
+@media (prefers-reduced-motion: reduce){
+  .group-list{transition:none}
+  .group-toggle .chev{transition:none}
+}
+
+.group-toggle .nm{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.group-toggle .cnt{flex:none; font-weight:400; letter-spacing:.08em; color:var(--line-2)}
+.group-toggle[data-here="true"]{color:var(--accent)}
+.group-toggle[data-here="true"] .cnt{color:var(--accent-line)}
+/* the tools overlay the row instead of taking width from the name */
+.group-head .tools{
+  position:absolute; right:4px; bottom:6px; display:flex; gap:1px;
+  background:var(--surface); box-shadow:-8px 0 8px -4px var(--surface);
+  opacity:0; pointer-events:none; transition:opacity .12s ease;
+}
+.group:hover .group-head .tools,
+.group:focus-within .group-head .tools{opacity:1; pointer-events:auto}
+@media (hover:none){ .group-head .tools{opacity:1} }
+.icon{
+  border:none; background:transparent; color:var(--muted); cursor:pointer;
+  width:22px; height:22px; border-radius:5px; display:grid; place-items:center;
+  font-size:13px; line-height:1; padding:0;
+}
+.icon:hover{background:var(--surface-2); color:var(--ink)}
+.icon.del:hover{background:var(--danger-soft); color:var(--danger)}
+.icon:disabled{opacity:.25; cursor:default}
+.icon:disabled:hover{background:transparent; color:var(--muted)}
+
+.topic{
+  display:flex; align-items:baseline; gap:9px; width:100%; text-align:left;
+  padding:6px 8px; border:none; border-radius:6px; background:transparent;
+  cursor:pointer; color:var(--ink-2);
+}
+.topic:hover{background:var(--surface-2)}
+.topic[draggable="true"]{cursor:grab}
+.topic[draggable="true"]:active{cursor:grabbing}
+.topic.dragging{opacity:.35}
+.topic.drop-before{box-shadow:inset 0 2px 0 var(--accent)}
+.topic.drop-after{box-shadow:inset 0 -2px 0 var(--accent)}
+.group-list.drop-end{box-shadow:inset 0 -2px 0 var(--accent)}
+.topic[aria-current="true"]{background:var(--accent-soft); color:var(--accent-ink)}
+.topic .num{
+  font-variant-numeric:tabular-nums; font-size:11.5px; font-weight:600;
+  color:var(--muted); min-width:16px; text-align:right; flex:none;
+}
+.topic[aria-current="true"] .num{color:var(--accent)}
+.topic .label{flex:1; min-width:0; font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.topic[aria-current="true"] .label{font-weight:500}
+.topic .empty-dot{
+  flex:none; width:5px; height:5px; border-radius:50%;
+  border:1px solid var(--line-2); background:transparent;
+}
+.rail-actions{display:flex; flex-direction:column; gap:6px; margin-top:auto; padding-top:18px}
+
+/* ---------- main ---------- */
+.main{
+  flex:1 1 auto; min-width:0; min-height:0; overflow-y:auto;
+  overscroll-behavior:contain; padding:34px 40px 120px;
+}
+.sheet{max-width:70ch; margin:0 auto}
+
+.crumb{
+  font-size:10.5px; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--muted); margin-bottom:14px;
+}
+.title-row{display:flex; align-items:flex-start; gap:16px; margin-bottom:6px}
+.title-num{
+  font-family:"Fraunces", Georgia, serif; font-weight:600;
+  font-size:34px; line-height:1.05; color:var(--accent);
+  font-variant-numeric:tabular-nums; flex:none; padding-top:2px;
+}
+h2.title{
+  font-family:"Fraunces", Georgia, serif; font-weight:600;
+  font-size:34px; line-height:1.12; letter-spacing:-.015em;
+  margin:0; text-wrap:balance; flex:1; min-width:0;
+}
+.toolbar{
+  display:flex; flex-wrap:wrap; align-items:center; gap:6px;
+  padding:14px 0 20px; border-bottom:1px solid var(--line); margin-bottom:28px;
+}
+.toolbar .spacer{flex:1}
+.toolbar select{
+  border:1px solid var(--line-2); background:var(--surface); border-radius:6px;
+  padding:5px 8px; font-size:12.5px; color:var(--ink-2); max-width:180px;
+}
+
+/* rendered content */
+.doc{font-family:"Source Serif 4", Georgia, serif; font-size:17px; line-height:1.62; color:var(--ink-2)}
+.doc h3{
+  font-family:"IBM Plex Sans", sans-serif; font-size:12px; font-weight:600;
+  letter-spacing:.13em; text-transform:uppercase; color:var(--accent);
+  margin:38px 0 12px; padding-bottom:6px; border-bottom:1px solid var(--accent-line);
+}
+.doc h4{
+  font-family:"Fraunces", Georgia, serif; font-size:19px; font-weight:600;
+  color:var(--ink); margin:28px 0 8px; letter-spacing:-.01em;
+}
+.doc h5{
+  font-family:"IBM Plex Sans", sans-serif; font-size:14px; font-weight:600;
+  color:var(--ink); margin:22px 0 6px;
+}
+.doc > *:first-child{margin-top:0}
+.doc p{margin:0 0 14px}
+.doc ul, .doc ol{margin:0 0 16px; padding-left:22px; display:flex; flex-direction:column; gap:5px}
+.doc li{padding-left:2px}
+.doc li > ul, .doc li > ol{margin:5px 0 0}
+.doc strong{color:var(--ink); font-weight:600}
+.doc code{
+  font-family:"IBM Plex Sans", monospace; font-size:.88em;
+  background:var(--surface-2); padding:1px 5px; border-radius:4px;
+}
+.doc hr{border:none; border-top:1px solid var(--line); margin:28px 0}
+.table-wrap{overflow-x:auto; margin:0 0 18px}
+.doc table{border-collapse:collapse; font-size:15px; width:auto; max-width:100%}
+.doc th, .doc td{
+  border-bottom:1px solid var(--line); padding:7px 30px 7px 0; text-align:left;
+  vertical-align:top; font-variant-numeric:tabular-nums;
+}
+.doc th:last-child, .doc td:last-child{padding-right:0}
+.doc th{
+  font-family:"IBM Plex Sans", sans-serif; font-size:11px; font-weight:600;
+  letter-spacing:.1em; text-transform:uppercase; color:var(--muted);
+  border-bottom-color:var(--line-2);
+}
+
+.blank{
+  border:1px dashed var(--line-2); border-radius:10px; padding:34px 26px;
+  text-align:center; color:var(--muted); font-size:14px;
+}
+.blank p{margin:0 0 14px}
+
+/* editor */
+.sheet.wide{max-width:none}
+.editor{display:flex; flex-direction:column; gap:12px}
+
+.fmtbar{
+  display:flex; flex-wrap:wrap; align-items:center; gap:2px;
+  padding:6px 8px; background:var(--surface);
+  border:1px solid var(--line-2); border-bottom:none; border-radius:10px 10px 0 0;
+  position:sticky; top:0; z-index:6;
+}
+.fmt{
+  border:none; background:transparent; color:var(--ink-2); cursor:pointer;
+  height:29px; min-width:31px; padding:0 8px; border-radius:6px;
+  font-size:13px; line-height:1; display:inline-flex; align-items:center; justify-content:center;
+}
+.fmt:hover{background:var(--accent-soft); color:var(--accent-ink)}
+.fmt .b{font-weight:700}
+.fmt .i{font-family:"Source Serif 4", Georgia, serif; font-style:italic; font-size:15px}
+.fmt .h{font-family:"Fraunces", Georgia, serif; font-weight:600; font-size:15px}
+.fmt .h.sm{font-size:12px}
+.fmt-sep{width:1px; height:17px; background:var(--line); margin:0 5px; flex:none}
+.fmt-spacer{flex:1}
+.fmt.toggle[aria-pressed="true"]{background:var(--accent-soft); color:var(--accent-ink)}
+
+.editable{
+  min-height:120px; background:var(--surface);
+  border:1px solid var(--line-2); border-top:none; border-radius:0 0 10px 10px;
+  padding:26px 30px;
+}
+.editable:focus{outline:2px solid var(--accent); outline-offset:-2px}
+.editable table{background:transparent}
+.editable th, .editable td{min-width:70px}
+.editable table, .editable th, .editable td{border-color:var(--line-2)}
+.editable td, .editable th,
+.editable td:last-child, .editable th:last-child{border:1px solid var(--line); padding:7px 12px}
+.editable .table-wrap, .editable table{margin-bottom:18px}
+.editable:empty::before{content:"Schreib hier los …"; color:var(--muted)}
+.editor{position:relative}
+.row-add{
+  position:absolute; z-index:4; display:none; align-items:center; gap:6px;
+  border:1px solid var(--accent-line); background:var(--accent-soft);
+  color:var(--accent-ink); border-radius:999px; padding:3px 11px;
+  font-size:12px; font-weight:500; cursor:pointer; white-space:nowrap;
+  box-shadow:0 0 0 3px var(--surface);
+}
+.row-add:hover{background:var(--accent); color:var(--on-accent); border-color:var(--accent)}
+.row-add[data-on="true"]{display:flex}
+
+/* modal */
+.scrim{
+  position:fixed; inset:0; background:rgba(16,20,18,.42); backdrop-filter:blur(2px);
+  display:grid; place-items:center; padding:20px; z-index:60;
+}
+.modal{
+  background:var(--surface); border:1px solid var(--line); border-radius:12px;
+  box-shadow:var(--shadow); padding:22px; width:min(420px, 100%);
+  display:flex; flex-direction:column; gap:14px;
+}
+.modal h3{
+  font-family:"Fraunces", Georgia, serif; font-weight:600; font-size:18px; margin:0;
+}
+.modal p{margin:0; font-size:13.5px; color:var(--muted); line-height:1.55}
+.field{display:flex; flex-direction:column; gap:5px}
+.field label{font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); font-weight:600}
+.field input{
+  border:1px solid var(--line-2); background:var(--bg); border-radius:7px; padding:9px 11px; font-size:15px;
+}
+.field input:focus{outline:2px solid var(--accent); outline-offset:-1px; border-color:transparent}
+.field input[aria-invalid="true"]{border-color:var(--danger); background:var(--danger-soft)}
+.modal-warn{margin:0; font-size:13px; color:var(--danger); font-weight:500}
+.modal-warn[hidden]{display:none}
+.modal-actions{display:flex; justify-content:flex-end; gap:8px; margin-top:2px}
+.row2{display:flex; gap:10px}
+.row2 .field:first-child{width:88px; flex:none}
+.row2 .field:last-child{flex:1}
+
+.toast{
+  position:fixed; left:50%; bottom:26px; transform:translateX(-50%);
+  background:var(--ink); color:var(--bg); padding:9px 16px; border-radius:999px;
+  font-size:13px; box-shadow:var(--shadow); z-index:80;
+}
+
+/* ---------- landing ---------- */
+.rail-home{
+  display:flex; align-items:center; gap:9px; width:100%; text-align:left;
+  padding:7px 8px; border:none; border-radius:6px; background:transparent;
+  cursor:pointer; color:var(--ink-2); font-size:14px; font-weight:500;
+}
+.rail-home:hover{background:var(--surface-2)}
+.rail-home[aria-current="true"]{background:var(--accent-soft); color:var(--accent-ink)}
+.rail-home .glyph{font-size:11px; color:var(--muted); width:16px; text-align:right}
+.rail-home[aria-current="true"] .glyph{color:var(--accent)}
+
+.sheet.home{max-width:74ch}
+.home-eyebrow{
+  font-size:10.5px; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--muted); margin-bottom:14px;
+}
+.home h2{
+  font-family:"Fraunces", Georgia, serif; font-weight:600;
+  font-size:40px; line-height:1.08; letter-spacing:-.02em;
+  margin:0 0 14px; text-wrap:balance;
+}
+.home-lead{
+  font-family:"Source Serif 4", Georgia, serif; font-size:18px; line-height:1.6;
+  color:var(--ink-2); max-width:54ch; margin:0 0 26px;
+}
+.home-group{margin-bottom:42px}
+.home-group h3{
+  font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent);
+  margin:0 0 16px; padding-bottom:8px; border-bottom:1px solid var(--accent-line);
+  display:flex; justify-content:space-between; gap:12px; align-items:baseline;
+}
+.home-group h3 em{font-style:normal; color:var(--muted); letter-spacing:.1em; flex:none}
+.grp-rename{
+  border:none; background:transparent; padding:0; margin:0; cursor:pointer;
+  font:inherit; color:inherit; letter-spacing:inherit; text-transform:inherit;
+  text-align:left; min-width:0; overflow:hidden; text-overflow:ellipsis;
+  white-space:nowrap; border-bottom:1px solid transparent;
+}
+.grp-rename:hover{border-bottom-color:var(--accent)}
+.cards{display:grid; grid-template-columns:repeat(auto-fill, minmax(210px, 1fr)); gap:12px}
+.card{
+  display:flex; flex-direction:column; gap:9px; text-align:left;
+  background:var(--surface); border:1px solid var(--line); border-radius:10px;
+  padding:15px 16px 17px; cursor:pointer; color:var(--ink); font:inherit;
+  transition:border-color .12s ease, transform .12s ease;
+}
+.card:hover{border-color:var(--accent); transform:translateY(-1px)}
+.card .n{
+  font-family:"Fraunces", Georgia, serif; font-size:19px; font-weight:600;
+  color:var(--accent); line-height:1; font-variant-numeric:tabular-nums;
+}
+.card .t{font-size:15px; font-weight:500; line-height:1.3}
+.card .x{
+  font-family:"Source Serif 4", Georgia, serif; font-size:13.5px; line-height:1.5;
+  color:var(--muted); display:-webkit-box; -webkit-line-clamp:3;
+  -webkit-box-orient:vertical; overflow:hidden;
+}
+.card.empty{border-style:dashed; background:transparent}
+.card.empty .n{color:var(--muted)}
+.card .chip{font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted)}
+.home-bar{display:flex; justify-content:flex-end; gap:6px; margin-bottom:12px; min-height:30px}
+.home-field{border-radius:6px; outline:none}
+.home-field[contenteditable="true"]{
+  background:var(--surface); box-shadow:inset 0 0 0 1px var(--line-2);
+  padding:3px 9px; margin-left:-9px;
+}
+.home-field[contenteditable="true"]:focus{box-shadow:inset 0 0 0 2px var(--accent)}
+.home-field[contenteditable="true"]:empty::before{
+  content:attr(data-ph); color:var(--muted); font-weight:400;
+}
+p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
+.home-lead-doc{
+  font-family:"Source Serif 4", Georgia, serif; font-size:18px; line-height:1.6;
+  color:var(--ink-2); max-width:56ch; margin:0 0 26px;
+}
+.home-lead-doc p{margin:0 0 12px}
+.home-lead-doc > *:last-child{margin-bottom:0}
+.home-lead-doc h3{margin-top:22px}
+.home-intro-blank{
+  border:1px dashed var(--line-2); border-radius:10px; padding:20px 22px;
+  color:var(--muted); font-size:14px; margin-bottom:26px;
+}
+
+/* ---------- table of contents ---------- */
+.toc{
+  border:1px solid var(--line); border-radius:10px; background:var(--surface);
+  padding:14px 18px 15px; margin-bottom:34px;
+}
+.toc-head{
+  display:flex; justify-content:space-between; align-items:baseline; gap:14px;
+  font-size:10.5px; letter-spacing:.13em; text-transform:uppercase;
+  color:var(--muted); margin-bottom:10px;
+}
+.toc-head > span{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.toc[hidden]{display:none}
+/* Aufleuchten der angesprungenen Überschrift — nur um die Wörter herum,
+   deshalb schrumpft der Kasten währenddessen auf die Textbreite. */
+@keyframes toc-flash{
+  0%{background:var(--accent-soft); box-shadow:0 0 0 4px var(--accent-soft)}
+  78%{background:var(--accent-soft); box-shadow:0 0 0 4px var(--accent-soft)}
+  100%{background:transparent; box-shadow:0 0 0 4px transparent}
+}
+.toc-flash{
+  border-radius:4px; width:max-content; max-width:100%;
+  animation:toc-flash 2.2s ease-out;
+}
+@media (prefers-reduced-motion: reduce){
+  .toc-flash{animation:none; background:var(--accent-soft); box-shadow:0 0 0 4px var(--accent-soft)}
+}
+.editor .toc{margin-bottom:14px}
+.toc-head b{font-weight:600; color:var(--ink-2)}
+.toc ol{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:1px}
+.toc ol button{
+  display:block; width:100%; text-align:left; border:none; background:transparent;
+  padding:4px 7px; margin-left:-7px; border-radius:5px; cursor:pointer;
+  color:var(--ink-2); font-size:14px; line-height:1.4;
+}
+.toc ol button:hover{background:var(--accent-soft); color:var(--accent-ink)}
+.toc li.sub button{padding-left:24px; font-size:13.5px; color:var(--muted)}
+.toc li.grp > .row{display:flex; align-items:center; gap:2px}
+.toc li.grp > .row > button.jump{flex:1; min-width:0; margin-left:0}
+.toc .sub-toggle{
+  flex:none; width:20px; height:22px; padding:0; margin:0; border:none;
+  background:transparent; cursor:pointer; color:var(--muted);
+  font-size:8px; line-height:1; border-radius:4px;
+  display:flex; align-items:center; justify-content:center;
+  transition:transform .12s ease, background .12s ease;
+}
+.toc .sub-toggle:hover{background:var(--surface-2); color:var(--ink)}
+.toc .sub-toggle.empty{visibility:hidden; pointer-events:none}
+.toc li.closed > .row > .sub-toggle{transform:rotate(-90deg)}
+.toc-subs{overflow:hidden; transition:height .18s ease}
+@media (prefers-reduced-motion: reduce){
+  .toc-subs{transition:none}
+  .toc .sub-toggle{transition:none}
+}
+.toc-toggle{
+  border:none; background:transparent; color:var(--muted); cursor:pointer;
+  font-size:10.5px; letter-spacing:.12em; text-transform:uppercase;
+  padding:0; flex:none; white-space:nowrap;
+}
+.toc-toggle:hover{color:var(--accent)}
+.doc h3, .doc h4{scroll-margin-top:14px}
+
+/* ---------- chooser ---------- */
+.choice{display:flex; flex-direction:column; gap:7px}
+.choice .btn{text-align:left; padding:11px 13px; line-height:1.35}
+.choice .btn small{display:block; font-size:12px; color:var(--muted); margin-top:2px}
+.home-blank{
+  border:1px dashed var(--line-2); border-radius:10px; padding:30px 24px;
+  color:var(--muted); font-size:14px;
+}
+
+@media (max-width:860px){
+  .home h2{font-size:30px}
+  .home-lead{font-size:16px}
+  .cards{grid-template-columns:repeat(auto-fill, minmax(150px, 1fr))}
+}
+
+@media (max-width:860px){
+  .body{flex-direction:column}
+  .rail{
+    width:auto; flex:none; border-right:none; border-bottom:1px solid var(--line);
+    max-height:40vh; padding-bottom:20px;
+  }
+  .main{padding:24px 20px 100px}
+  .title-num, h2.title{font-size:27px}
+  .topbar{padding:9px 14px; gap:10px}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none !important; animation:none !important}
+}
+</style>
+
+<div class="app">
+  <header class="topbar">
+    <button class="btn ghost" id="accent-btn" title="Farbe ändern" aria-label="Farbe ändern"><span class="swatch"></span></button>
+    <button class="btn ghost" id="undo-btn" title="Rückgängig (⌘Z)" aria-label="Rückgängig" disabled>↶</button>
+    <div class="status" id="status"><span class="dot"></span><span id="status-text">Gesichert</span></div>
+    <button class="btn primary" id="save-btn" disabled>Sichern</button>
+  </header>
+  <div class="body">
+    <nav class="rail" id="rail" aria-label="Themengebiete"></nav>
+    <main class="main"><div class="sheet" id="sheet"></div></main>
+  </div>
+</div>
+<div id="overlay"></div>
+
+<script id="app-data" type="application/json">{"groups":[],"selected":null,"home":{"eyebrow":"Wissenssammlung","title":"Themengebiete","intro":""}}</script>
+
+<script id="app-script">
+(function () {
+  "use strict";
+
+  var raw = document.getElementById("app-data").textContent;
+  var state = JSON.parse(raw);
+  if (!state.groups) state.groups = [];
+
+  var dirty = false;
+  var editing = false;
+  var draft = null;
+  var readOnly = false;
+  var activeSync = null;
+  var homeEditing = false;
+  var homeDraft = null;
+  var history = [];
+  var redoStack = [];
+  var activeText = null;
+
+  document.addEventListener("selectionchange", function () {
+    if (activeSync) activeSync();
+  });
+
+  var railEl = document.getElementById("rail");
+  var sheetEl = document.getElementById("sheet");
+  var overlayEl = document.getElementById("overlay");
+  var saveBtn = document.getElementById("save-btn");
+  var statusEl = document.getElementById("status");
+  var statusText = document.getElementById("status-text");
+
+  var undoBtn = document.getElementById("undo-btn");
+  /* Each palette gives the five accent tokens for light and for dark, so a
+     colour change never leaves one theme with the other theme's accent. */
+  var ACCENTS = {
+    gruen: { name: "Grün",
+      l: { a: "#1E6B4F", i: "#0E4433", s: "#E3EFE8", n: "#B7D5C6", o: "#FFFFFF" },
+      d: { a: "#5FC79A", i: "#A8E3C7", s: "#1A2C24", n: "#2C4A3B", o: "#0F1412" } },
+    blau: { name: "Blau",
+      l: { a: "#1D5B8F", i: "#0D3A5E", s: "#E2EDF6", n: "#B4CFE4", o: "#FFFFFF" },
+      d: { a: "#6AB8EF", i: "#AFD8F5", s: "#16242F", n: "#2A4356", o: "#0F1412" } },
+    violett: { name: "Violett",
+      l: { a: "#5B4396", i: "#3A2A63", s: "#EBE7F6", n: "#C8BDE4", o: "#FFFFFF" },
+      d: { a: "#A891E8", i: "#CDBEF5", s: "#221D33", n: "#3B3259", o: "#0F1412" } },
+    bernstein: { name: "Bernstein",
+      l: { a: "#8F5E17", i: "#5C3B0C", s: "#F6EEDC", n: "#E0C89A", o: "#FFFFFF" },
+      d: { a: "#DFAA57", i: "#F0CE95", s: "#2C2415", n: "#4A3B22", o: "#0F1412" } },
+    ziegel: { name: "Ziegelrot",
+      l: { a: "#9A3B2C", i: "#63251A", s: "#F7E7E3", n: "#E0B9B0", o: "#FFFFFF" },
+      d: { a: "#E58A76", i: "#F3B8AA", s: "#2E1C18", n: "#4C2F27", o: "#0F1412" } },
+    schiefer: { name: "Schiefer",
+      l: { a: "#3E4C56", i: "#25313A", s: "#E8ECEF", n: "#C2CCD3", o: "#FFFFFF" },
+      d: { a: "#9DB2C0", i: "#C6D4DD", s: "#1D242A", n: "#33414B", o: "#0F1412" } }
+  };
+
+  function accentKey() {
+    return state.accent && ACCENTS[state.accent] ? state.accent : "gruen";
+  }
+
+  function applyAccent() {
+    var t = ACCENTS[accentKey()];
+    function vars(v) {
+      return (
+        "--accent:" + v.a + ";--accent-ink:" + v.i + ";--accent-soft:" + v.s +
+        ";--accent-line:" + v.n + ";--on-accent:" + v.o + ";"
+      );
+    }
+    var el = document.getElementById("accent-style");
+    if (!el) {
+      el = document.createElement("style");
+      el.id = "accent-style";
+      /* appended last so it wins over the palette in app-style */
+      document.body.appendChild(el);
+    }
+    el.textContent =
+      ":root{" + vars(t.l) + "}" +
+      '@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){' + vars(t.d) + "}}" +
+      ':root[data-theme="dark"]{' + vars(t.d) + "}";
+  }
+
+  function pickAccent() {
+    var cur = accentKey();
+    var opts = [];
+    Object.keys(ACCENTS).forEach(function (k) {
+      opts.push({
+        label: ACCENTS[k].name + (k === cur ? "  ·  aktuell" : ""),
+        dot: ACCENTS[k].l.a,
+        fn: function () {
+          if (k === cur) return;
+          snapshot();
+          state.accent = k;
+          markDirty();
+          applyAccent();
+          render();
+          toast("Farbe: " + ACCENTS[k].name);
+        }
+      });
+    });
+    chooser("Farbe der Sammlung", "Gilt für helle und dunkle Ansicht.", opts);
+  }
+
+  /* ---------- helpers ---------- */
+
+  /* collapsed groups are a per-browser view preference, not saved content */
+  /* Einmal aus dem Speicher lesen und danach im Kopf behalten — ohne
+     localStorage (privates Fenster) würde sonst jeder Klick wieder zuklappen. */
+  var collapsed = (function () {
+    try {
+      var v = JSON.parse(localStorage.getItem("tg-collapsed") || "[]");
+      return Array.isArray(v) ? v : [];
+    } catch (e) {
+      return [];
+    }
+  })();
+
+  function collapsedGroups() {
+    return collapsed;
+  }
+
+  function toggleGroup(id, wrap) {
+    var i = collapsed.indexOf(id);
+    var close = i < 0;
+    if (close) collapsed.push(id);
+    else collapsed.splice(i, 1);
+    try {
+      localStorage.setItem("tg-collapsed", JSON.stringify(collapsed));
+    } catch (e) {}
+    if (!wrap) {
+      renderRail();
+      return;
+    }
+    /* Nur umschalten: ein Neuaufbau der Leiste flackert und würde beim
+       Schreiben den Cursor aus dem Text holen. */
+    wrap.classList.toggle("collapsed", close);
+    var btn = wrap.querySelector(".group-toggle");
+    if (btn) {
+      btn.setAttribute("aria-expanded", close ? "false" : "true");
+      btn.title = close ? "Themen zeigen" : "Themen einklappen";
+    }
+    slide(wrap.querySelector(".group-list"), !close);
+  }
+
+  /* Von der gemessenen Höhe auf 0 und zurück — "auto" lässt sich nicht animieren. */
+  function slide(el, open) {
+    if (!el) return;
+    if (el._slide) {
+      clearTimeout(el._slide);
+      el._slide = null;
+    }
+    var h = el.scrollHeight;
+    if (open) {
+      el.style.height = el.style.height || "0px";
+      void el.offsetHeight;
+      el.style.height = h + "px";
+      el._slide = setTimeout(function () {
+        el.style.height = "";
+        el._slide = null;
+      }, 220);
+    } else {
+      el.style.height = h + "px";
+      void el.offsetHeight;
+      el.style.height = "0px";
+    }
+  }
+
+  function uid(p) {
+    return p + Math.random().toString(36).slice(2, 9);
+  }
+
+  function esc(s) {
+    return String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function allTopics() {
+    var out = [];
+    state.groups.forEach(function (g) {
+      g.topics.forEach(function (t) {
+        out.push({ group: g, topic: t });
+      });
+    });
+    return out;
+  }
+
+  function findTopic(id) {
+    var hit = null;
+    allTopics().forEach(function (e) {
+      if (e.topic.id === id) hit = e;
+    });
+    return hit;
+  }
+
+  function current() {
+    return state.selected ? findTopic(state.selected) : null;
+  }
+
+  /* EIN Verlauf für alles: Tippen, Formatieren, Umbenennen, Verschieben,
+     Löschen, Farbe. Zwei Sorten Schritte —
+       "doc"  = das ganze Dokument vor der Änderung
+       "text" = der Inhalt eines Themas (oder der Einleitung) vor der Änderung
+     Der Text wird einzeln geführt, weil ein Dokument-Abzug pro Tastendruck
+     zu schwer wäre. */
+  function pushUndo(entry) {
+    history.push(entry);
+    if (history.length > 80) history.shift();
+    redoStack.length = 0;
+    syncUndo();
+  }
+
+  function snapshot() {
+    try {
+      pushUndo({ kind: "doc", state: JSON.stringify(state) });
+    } catch (e) {}
+  }
+
+  function textOf(key) {
+    if (activeText && activeText.key === key) return activeText.get();
+    if (key === "__home") return state.home.intro;
+    var hit = findTopic(key);
+    return hit ? hit.topic.html : "";
+  }
+
+  /* Der Gegenschritt zum gerade zurückgenommenen — damit ↷ wieder vorgeht. */
+  function counterStep(entry) {
+    if (entry.kind === "doc") return { kind: "doc", state: JSON.stringify(state) };
+    return { kind: "text", key: entry.key, html: textOf(entry.key) };
+  }
+
+  function applyStep(entry) {
+    if (entry.kind === "doc") {
+      var restored;
+      try {
+        restored = JSON.parse(entry.state);
+      } catch (e) {
+        return;
+      }
+      state = restored;
+      applyAccent();
+      /* Angefangenen, noch nicht übernommenen Text nicht wegwerfen —
+         der Schritt betraf das Dokument, nicht den offenen Editor. */
+      if (homeEditing) {
+        homeDraft = {
+          eyebrow: state.home.eyebrow,
+          title: state.home.title,
+          addEyebrow: false,
+          addTitle: false,
+          addIntro: false
+        };
+      } else {
+        homeDraft = null;
+      }
+      if (editing && !current()) {
+        editing = false;
+        draft = null;
+      }
+      markDirty();
+      render();
+      return;
+    }
+    if (activeText && activeText.key === entry.key) {
+      activeText.set(entry.html);
+      markDirty();
+      return;
+    }
+    /* Editor gerade zu — dann direkt ins Dokument schreiben */
+    var clean = sanitize(entry.html);
+    if (entry.key === "__home") state.home.intro = clean;
+    else {
+      var hit = findTopic(entry.key);
+      if (hit) hit.topic.html = clean;
+    }
+    draft = null;
+    markDirty();
+    render();
+  }
+
+  function syncUndo() {
+    if (!undoBtn) return;
+    undoBtn.disabled = history.length === 0;
+    undoBtn.title = history.length
+      ? "Rückgängig (⌘Z) — " + history.length + " Schritte möglich"
+      : "Nichts rückgängig zu machen";
+  }
+
+  function undo() {
+    if (!history.length) return;
+    var entry = history.pop();
+    redoStack.push(counterStep(entry));
+    applyStep(entry);
+    syncUndo();
+  }
+
+  function redo() {
+    if (!redoStack.length) return;
+    var entry = redoStack.pop();
+    history.push(counterStep(entry));
+    applyStep(entry);
+    syncUndo();
+  }
+
+  function markDirty() {
+    dirty = true;
+    if (readOnly) return;
+    saveBtn.disabled = false;
+    statusEl.classList.add("dirty");
+    statusText.textContent = "Nicht gesichert";
+  }
+
+  function goReadOnly() {
+    readOnly = true;
+    saveBtn.disabled = true;
+    statusEl.classList.remove("dirty");
+    statusText.textContent = "Nur lesen";
+  }
+
+  function toast(msg) {
+    var old = document.querySelector(".toast");
+    if (old) old.remove();
+    var el = document.createElement("div");
+    el.className = "toast";
+    el.textContent = msg;
+    document.body.appendChild(el);
+    setTimeout(function () {
+      el.remove();
+    }, 2600);
+  }
+
+  /* ---------- text rendering ---------- */
+
+  function inline(s) {
+    var t = esc(s);
+    t = t.replace(/`([^`]+)`/g, "<code>$1</code>");
+    t = t.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+    t = t.replace(/(^|[\s(])_([^_]+)_(?=[\s.,;:)!?]|$)/g, "$1<em>$2</em>");
+    return t;
+  }
+
+  function renderDoc(src) {
+    var lines = String(src || "").replace(/\r/g, "").split("\n");
+    var html = "";
+    var i = 0;
+
+    function collectItems() {
+      var items = [];
+      while (i < lines.length) {
+        var m = lines[i].match(/^(\s*)(?:([-•*])|(\d+)\.)\s+(.*)$/);
+        if (!m) break;
+        items.push({
+          depth: Math.min(Math.floor(m[1].length / 2), 2),
+          ordered: !!m[3],
+          text: m[4]
+        });
+        i++;
+      }
+      return items;
+    }
+
+    function buildList(items, p, depth) {
+      var tag = items[p.i].ordered ? "ol" : "ul";
+      var out = "<" + tag + ">";
+      var hasItem = false;
+      while (p.i < items.length) {
+        var it = items[p.i];
+        if (it.depth < depth) break;
+        if (it.depth > depth) {
+          if (hasItem) {
+            out = out.replace(/<\/li>$/, "");
+            out += buildList(items, p, depth + 1) + "</li>";
+          } else {
+            out += "<li>" + buildList(items, p, depth + 1) + "</li>";
+            hasItem = true;
+          }
+          continue;
+        }
+        if ((it.ordered ? "ol" : "ul") !== tag) break;
+        out += "<li>" + inline(it.text) + "</li>";
+        hasItem = true;
+        p.i++;
+      }
+      return out + "</" + tag + ">";
+    }
+
+    while (i < lines.length) {
+      var line = lines[i];
+
+      if (!line.trim()) {
+        i++;
+        continue;
+      }
+
+      var h = line.match(/^(#{2,4})\s+(.*)$/);
+      if (h) {
+        var lvl = h[1].length + 1;
+        html += "<h" + lvl + ">" + inline(h[2]) + "</h" + lvl + ">";
+        i++;
+        continue;
+      }
+
+      if (/^\s*(-{3,}|_{3,})\s*$/.test(line)) {
+        html += "<hr>";
+        i++;
+        continue;
+      }
+
+      if (/^\s*\|/.test(line)) {
+        var rows = [];
+        while (i < lines.length && /^\s*\|/.test(lines[i])) {
+          var cells = lines[i].trim().replace(/^\||\|$/g, "").split("|");
+          if (!/^[\s|:-]+$/.test(lines[i])) rows.push(cells);
+          i++;
+        }
+        if (rows.length) {
+          var tbl = '<div class="table-wrap"><table><thead><tr>';
+          rows[0].forEach(function (c) {
+            tbl += "<th>" + inline(c.trim()) + "</th>";
+          });
+          tbl += "</tr></thead><tbody>";
+          rows.slice(1).forEach(function (r) {
+            tbl += "<tr>";
+            r.forEach(function (c) {
+              tbl += "<td>" + inline(c.trim()) + "</td>";
+            });
+            tbl += "</tr>";
+          });
+          tbl += "</tbody></table></div>";
+          html += tbl;
+        }
+        continue;
+      }
+
+      if (/^\s*(?:[-•*]|\d+\.)\s+/.test(line)) {
+        var items = collectItems();
+        var p = { i: 0 };
+        while (p.i < items.length) html += buildList(items, p, items[p.i].depth);
+        continue;
+      }
+
+      var para = [];
+      while (
+        i < lines.length &&
+        lines[i].trim() &&
+        !/^\s*(?:[-•*]|\d+\.)\s+/.test(lines[i]) &&
+        !/^#{2,4}\s/.test(lines[i]) &&
+        !/^\s*\|/.test(lines[i])
+      ) {
+        para.push(lines[i].trim());
+        i++;
+      }
+      html += "<p>" + inline(para.join(" ")) + "</p>";
+    }
+
+    return html;
+  }
+
+  /* ---------- modal ---------- */
+
+  function modal(opts) {
+    overlayEl.innerHTML = "";
+    var scrim = document.createElement("div");
+    scrim.className = "scrim";
+
+    var fields = opts.fields || [];
+    var inputsHtml = fields
+      .map(function (f) {
+        return (
+          '<div class="field"><label for="f-' +
+          f.key +
+          '">' +
+          esc(f.label) +
+          '</label><input id="f-' +
+          f.key +
+          '" value="' +
+          esc(f.value || "") +
+          '" ' +
+          (f.placeholder ? 'placeholder="' + esc(f.placeholder) + '"' : "") +
+          "></div>"
+        );
+      })
+      .join("");
+
+    scrim.innerHTML =
+      '<div class="modal" role="dialog" aria-modal="true">' +
+      "<h3>" + esc(opts.title) + "</h3>" +
+      (opts.text ? "<p>" + esc(opts.text) + "</p>" : "") +
+      (fields.length
+        ? '<div class="' + (fields.length > 1 && !opts.stack ? "row2" : "") + '">' + inputsHtml + "</div>"
+        : "") +
+      '<p class="modal-warn" hidden></p>' +
+      '<div class="modal-actions">' +
+      '<button class="btn" data-act="cancel">Abbrechen</button>' +
+      '<button class="btn ' +
+      (opts.danger ? "danger" : "primary") +
+      '" data-act="ok">' +
+      esc(opts.confirm || "Speichern") +
+      "</button>" +
+      "</div></div>";
+
+    overlayEl.appendChild(scrim);
+    var first = scrim.querySelector("input");
+    if (first) {
+      first.focus();
+      first.select();
+    } else {
+      scrim.querySelector('[data-act="ok"]').focus();
+    }
+
+    function close() {
+      overlayEl.innerHTML = "";
+      document.removeEventListener("keydown", onKey);
+    }
+    var warnEl = scrim.querySelector(".modal-warn");
+    [].slice.call(scrim.querySelectorAll("input")).forEach(function (el) {
+      el.addEventListener("input", function () {
+        el.removeAttribute("aria-invalid");
+        warnEl.hidden = true;
+      });
+    });
+
+    function submit() {
+      var vals = {};
+      var missing = null;
+      fields.forEach(function (f) {
+        var el = scrim.querySelector("#f-" + f.key);
+        vals[f.key] = el.value.trim();
+        if (f.required && !vals[f.key] && !missing) missing = { f: f, el: el };
+      });
+      /* Ein leeres Pflichtfeld hat den Dialog früher stillschweigend geschlossen —
+         das sah aus, als käme der alte Wert nach dem Speichern zurück. */
+      if (missing) {
+        warnEl.textContent = "\u201E" + missing.f.label + "\u201C darf nicht leer sein.";
+        warnEl.hidden = false;
+        missing.el.setAttribute("aria-invalid", "true");
+        missing.el.focus();
+        return;
+      }
+      close();
+      opts.onOk(vals);
+    }
+    function onKey(e) {
+      if (e.key === "Escape") close();
+      if (e.key === "Enter" && scrim.contains(document.activeElement)) submit();
+    }
+
+    scrim.addEventListener("click", function (e) {
+      if (e.target === scrim) close();
+      var hit = e.target.closest ? e.target.closest("[data-act]") : null;
+      var act = hit && hit.getAttribute("data-act");
+      if (act === "cancel") close();
+      if (act === "ok") submit();
+    });
+    document.addEventListener("keydown", onKey);
+  }
+
+  function chooser(title, text, actions) {
+    overlayEl.innerHTML = "";
+    var scrim = document.createElement("div");
+    scrim.className = "scrim";
+    var m = document.createElement("div");
+    m.className = "modal";
+    m.setAttribute("role", "dialog");
+    m.setAttribute("aria-modal", "true");
+    m.innerHTML = "<h3>" + esc(title) + "</h3>" + (text ? "<p>" + esc(text) + "</p>" : "");
+
+    var list = document.createElement("div");
+    list.className = "choice";
+    actions.forEach(function (a) {
+      var b = document.createElement("button");
+      b.className = "btn";
+      b.type = "button";
+      b.innerHTML =
+        (a.dot ? '<span class="dot" style="background:' + esc(a.dot) + '"></span>' : "") +
+        esc(a.label) +
+        (a.hint ? "<small>" + esc(a.hint) + "</small>" : "");
+      b.addEventListener("click", function () {
+        close();
+        a.fn();
+      });
+      list.appendChild(b);
+    });
+    m.appendChild(list);
+
+    var foot = document.createElement("div");
+    foot.className = "modal-actions";
+    var cancel = document.createElement("button");
+    cancel.className = "btn ghost";
+    cancel.textContent = "Abbrechen";
+    cancel.addEventListener("click", function () {
+      close();
+    });
+    foot.appendChild(cancel);
+    m.appendChild(foot);
+
+    scrim.appendChild(m);
+    overlayEl.appendChild(scrim);
+    list.querySelector(".btn").focus();
+
+    function close() {
+      overlayEl.innerHTML = "";
+      document.removeEventListener("keydown", onKey);
+    }
+    function onKey(e) {
+      if (e.key === "Escape") close();
+    }
+    scrim.addEventListener("click", function (e) {
+      if (e.target === scrim) close();
+    });
+    document.addEventListener("keydown", onKey);
+  }
+
+  /* Numbers are free text ("3", "8", "10") — compare the leading number,
+     fall back to the text so "3a" still lands next to "3". */
+  function byNum(a, b) {
+    var na = parseFloat(String(a.num).replace(",", "."));
+    var nb = parseFloat(String(b.num).replace(",", "."));
+    if (isNaN(na) && isNaN(nb)) return String(a.num).localeCompare(String(b.num), "de");
+    if (isNaN(na)) return 1;
+    if (isNaN(nb)) return -1;
+    if (na !== nb) return na - nb;
+    return String(a.num).localeCompare(String(b.num), "de");
+  }
+
+  function organise(g) {
+    chooser("Themen ordnen", "In „" + g.name + "“", [
+      {
+        label: "Nach Nummer sortieren",
+        hint: "Reihenfolge nach der vorangestellten Zahl",
+        fn: function () {
+          snapshot();
+          g.topics.sort(byNum);
+          markDirty();
+          render();
+          toast("Nach Nummer sortiert.");
+        }
+      },
+      {
+        label: "Alphabetisch sortieren",
+        hint: "Reihenfolge nach dem Titel",
+        fn: function () {
+          snapshot();
+          g.topics.sort(function (a, b) {
+            return String(a.title).localeCompare(String(b.title), "de");
+          });
+          markDirty();
+          render();
+          toast("Alphabetisch sortiert.");
+        }
+      },
+      {
+        label: "Neu durchnummerieren",
+        hint: "Vergibt 1 bis " + g.topics.length + " in der aktuellen Reihenfolge",
+        fn: function () {
+          snapshot();
+          g.topics.forEach(function (t, i) {
+            t.num = String(i + 1);
+          });
+          markDirty();
+          render();
+          toast("Neu durchnummeriert.");
+        }
+      },
+      {
+        label: "Leere Themen ans Ende",
+        hint: "Themen ohne Inhalt nach unten, Reihenfolge bleibt sonst",
+        fn: function () {
+          snapshot();
+          var full = g.topics.filter(function (t) {
+            return !isEmptyHtml(t.html);
+          });
+          var empty = g.topics.filter(function (t) {
+            return isEmptyHtml(t.html);
+          });
+          g.topics = full.concat(empty);
+          markDirty();
+          render();
+          toast("Leere Themen nach unten geschoben.");
+        }
+      }
+    ]);
+  }
+
+  /* ---------- rail ---------- */
+
+  /* Alles zum Umbenennen, Verschieben und Löschen gehört in den Bearbeiten-Modus.
+     Beim reinen Lesen bleibt die Seitenleiste reine Navigation. */
+  function toolsVisible() {
+    /* In einer leeren Sammlung sind die Werkzeuge immer da — sonst käme man
+       nie an das erste Überthema heran. */
+    return editing || homeEditing || !allTopics().length;
+  }
+
+  function renderRail() {
+    railEl.innerHTML = "";
+
+    var home = document.createElement("button");
+    home.className = "rail-home";
+    home.setAttribute("aria-current", state.selected ? "false" : "true");
+    home.innerHTML = '<span class="glyph">\u25A6</span><span>Übersicht</span>';
+    home.addEventListener("click", function () {
+      select(null);
+    });
+    railEl.appendChild(home);
+
+    state.groups.forEach(function (g, gi) {
+      var wrap = document.createElement("section");
+      wrap.className = "group";
+
+      var head = document.createElement("div");
+      head.className = "group-head";
+      var isCollapsed = collapsedGroups().indexOf(g.id) >= 0;
+      if (isCollapsed) wrap.classList.add("collapsed");
+      var holdsCurrent = g.topics.some(function (t) {
+        return t.id === state.selected;
+      });
+
+      head.innerHTML =
+        '<button class="group-toggle" type="button" data-act="toggle"' +
+        (holdsCurrent ? ' data-here="true"' : "") +
+        ' aria-expanded="' + (isCollapsed ? "false" : "true") + '"' +
+        ' title="' + (isCollapsed ? "Themen zeigen" : "Themen einklappen") + '">' +
+        '<span class="chev">▼</span><span class="nm">' + esc(g.name) + "</span>" +
+        '<span class="cnt">' + g.topics.length + "</span>" +
+        "</button>" +
+        (toolsVisible()
+          ? '<span class="tools">' +
+            '<button class="icon" title="Thema hinzufügen" data-act="add-topic">+</button>' +
+            '<button class="icon" title="Themen ordnen" data-act="sort">⇅</button>' +
+            '<button class="icon" title="Überthema umbenennen" data-act="ren-group">✎</button>' +
+            '<button class="icon del" title="Überthema löschen" data-act="del-group">✕</button>' +
+            '<button class="icon" title="Nach oben" data-act="up-group"' + (gi === 0 ? " disabled" : "") + ">↑</button>" +
+            '<button class="icon" title="Nach unten" data-act="down-group"' +
+            (gi === state.groups.length - 1 ? " disabled" : "") + ">↓</button>" +
+            "</span>"
+          : "");
+      head.addEventListener("dblclick", function (e) {
+        if (e.target.closest && e.target.closest(".group-toggle")) renameGroup(g);
+      });
+      head.addEventListener("click", function (e) {
+        /* Der Klick landet meist auf einem <span> im Knopf (Pfeil, Name,
+           Zähler) — von dort aus den Knopf mit der Aktion suchen. */
+        var hit = e.target.closest ? e.target.closest("[data-act]") : null;
+        var act = hit && hit.getAttribute("data-act");
+        if (!act) return;
+        if (act === "toggle") {
+          toggleGroup(g.id, wrap);
+          return;
+        }
+        if (act === "add-topic") addTopic(g);
+        if (act === "sort") organise(g);
+        if (act === "ren-group") renameGroup(g);
+        if (act === "del-group") deleteGroup(g);
+        if (act === "up-group") moveGroup(gi, -1);
+        if (act === "down-group") moveGroup(gi, 1);
+      });
+      wrap.appendChild(head);
+
+      var listBox = document.createElement("div");
+      listBox.className = "group-list";
+      if (isCollapsed) listBox.style.height = "0px";
+      wrap.appendChild(listBox);
+
+      if (toolsVisible()) {
+        /* auf freier Fläche ablegen = ans Ende dieses Überthemas */
+        listBox.addEventListener("dragover", function (e) {
+          if (!dragId) return;
+          e.preventDefault();
+          clearDropMarks();
+          listBox.classList.add("drop-end");
+        });
+        listBox.addEventListener("drop", function (e) {
+          if (!dragId) return;
+          e.preventDefault();
+          var id = dragId;
+          dragId = null;
+          clearDropMarks();
+          dropTopic(id, g, g.topics.length);
+        });
+      }
+
+      if (!g.topics.length) {
+        var none = document.createElement("div");
+        none.style.cssText =
+          "padding:4px 8px 6px;font-size:12.5px;color:var(--muted)";
+        none.textContent = "Noch keine Themen";
+        listBox.appendChild(none);
+      }
+
+      g.topics.forEach(function (t) {
+        var b = document.createElement("button");
+        b.className = "topic";
+        b.setAttribute("aria-current", t.id === state.selected ? "true" : "false");
+        if (toolsVisible()) {
+          b.draggable = true;
+          b.title = "Ziehen, um die Reihenfolge zu ändern";
+          b.addEventListener("dragstart", function (e) {
+            dragId = t.id;
+            b.classList.add("dragging");
+            try {
+              e.dataTransfer.effectAllowed = "move";
+              e.dataTransfer.setData("text/plain", t.id);
+            } catch (err) {}
+          });
+          b.addEventListener("dragend", function () {
+            dragId = null;
+            b.classList.remove("dragging");
+            clearDropMarks();
+          });
+          b.addEventListener("dragover", function (e) {
+            if (!dragId || dragId === t.id) return;
+            e.preventDefault();
+            e.stopPropagation();
+            try {
+              e.dataTransfer.dropEffect = "move";
+            } catch (err) {}
+            var r = b.getBoundingClientRect();
+            var unten = e.clientY - r.top > r.height / 2;
+            clearDropMarks();
+            b.classList.add(unten ? "drop-after" : "drop-before");
+          });
+          b.addEventListener("drop", function (e) {
+            if (!dragId) return;
+            e.preventDefault();
+            e.stopPropagation();
+            var r = b.getBoundingClientRect();
+            var unten = e.clientY - r.top > r.height / 2;
+            var id = dragId;
+            dragId = null;
+            clearDropMarks();
+            dropTopic(id, g, g.topics.indexOf(t) + (unten ? 1 : 0));
+          });
+        }
+        b.innerHTML =
+          (String(t.num || "").trim() ? '<span class="num">' + esc(t.num) + "</span>" : "") +
+          '<span class="label">' + esc(t.title) + "</span>" +
+          (isEmptyHtml(t.html) ? '<span class="empty-dot" title="Noch leer"></span>' : "");
+        b.addEventListener("click", function () {
+          select(t.id);
+        });
+        listBox.appendChild(b);
+      });
+
+      railEl.appendChild(wrap);
+    });
+
+    if (toolsVisible()) {
+      var actions = document.createElement("div");
+      actions.className = "rail-actions";
+      var addG = document.createElement("button");
+      addG.className = "btn";
+      addG.textContent = "+ Überthema";
+      addG.addEventListener("click", addGroup);
+      actions.appendChild(addG);
+      railEl.appendChild(actions);
+    }
+
+
+  }
+
+  /* ---------- main ---------- */
+
+  /* Umbenennen, Verschieben, Löschen — sichtbar nur im Bearbeiten-Modus */
+  function appendTopicTools(bar, cur) {
+    var ren = document.createElement("button");
+    ren.className = "btn";
+    ren.textContent = "Umbenennen";
+    ren.addEventListener("click", function () {
+      renameTopic(cur.topic);
+    });
+    bar.appendChild(ren);
+
+    var idx = cur.group.topics.indexOf(cur.topic);
+    var up = document.createElement("button");
+    up.className = "btn sm";
+    up.textContent = "↑";
+    up.title = "Nach oben";
+    up.disabled = idx === 0;
+    up.addEventListener("click", function () {
+      moveTopic(cur.group, idx, -1);
+    });
+    var down = document.createElement("button");
+    down.className = "btn sm";
+    down.textContent = "↓";
+    down.title = "Nach unten";
+    down.disabled = idx === cur.group.topics.length - 1;
+    down.addEventListener("click", function () {
+      moveTopic(cur.group, idx, 1);
+    });
+    bar.appendChild(up);
+    bar.appendChild(down);
+
+    if (state.groups.length > 1) {
+      var sel = document.createElement("select");
+      sel.title = "In anderes Überthema verschieben";
+      state.groups.forEach(function (g) {
+        var o = document.createElement("option");
+        o.value = g.id;
+        o.textContent = g.name;
+        if (g === cur.group) o.selected = true;
+        sel.appendChild(o);
+      });
+      sel.addEventListener("change", function () {
+        moveTopicToGroup(cur.group, cur.topic, sel.value);
+      });
+      bar.appendChild(sel);
+    }
+
+    var sp = document.createElement("div");
+    sp.className = "spacer";
+    bar.appendChild(sp);
+
+    var del = document.createElement("button");
+    del.className = "btn ghost danger";
+    del.textContent = "Löschen";
+    del.addEventListener("click", function () {
+      deleteTopic(cur.group, cur.topic);
+    });
+    bar.appendChild(del);
+  }
+
+  function renderMain() {
+    var cur = current();
+    sheetEl.innerHTML = "";
+    sheetEl.classList.remove("home");
+
+    if (!cur) {
+      renderLanding();
+      return;
+    }
+
+    var crumb = document.createElement("div");
+    crumb.className = "crumb";
+    crumb.textContent = cur.group.name;
+    sheetEl.appendChild(crumb);
+
+    var row = document.createElement("div");
+    row.className = "title-row";
+    row.innerHTML =
+      (String(cur.topic.num || "").trim()
+        ? '<div class="title-num">' + esc(cur.topic.num) + "</div>"
+        : "") +
+      '<h2 class="title">' + esc(cur.topic.title) + "</h2>";
+    sheetEl.appendChild(row);
+
+    var bar = document.createElement("div");
+    bar.className = "toolbar";
+    sheetEl.appendChild(bar);
+
+    if (editing) {
+      var done = document.createElement("button");
+      done.className = "btn primary";
+      done.textContent = "Fertig";
+      done.addEventListener("click", function () {
+        commitDraft();
+        editing = false;
+        render();
+      });
+      var cancel = document.createElement("button");
+      cancel.className = "btn ghost";
+      cancel.textContent = "Verwerfen";
+      cancel.addEventListener("click", function () {
+        draft = null;
+        editing = false;
+        render();
+      });
+      bar.appendChild(done);
+      bar.appendChild(cancel);
+      appendTopicTools(bar, cur);
+
+      sheetEl.appendChild(buildEditor(cur.topic));
+      return;
+    }
+
+    var edit = document.createElement("button");
+    edit.className = "btn";
+    edit.textContent = "Bearbeiten";
+    edit.addEventListener("click", startEditing);
+    bar.appendChild(edit);
+
+    if (!isEmptyHtml(cur.topic.html)) {
+      var doc = document.createElement("article");
+      doc.className = "doc";
+      doc.title = "Doppelklick zum Bearbeiten";
+      doc.innerHTML = displayHtml(cur.topic.html);
+      doc.addEventListener("dblclick", startEditing);
+      var toc = buildToc(doc, function (h) {
+        /* hart, nicht weich: weiches Scrollen in diesem Behälter wird in
+           manchen Browsern verworfen und der Sprung passiert dann gar nicht */
+        h.scrollIntoView({ block: "start", behavior: "auto" });
+        flashHeading(h);
+      });
+      if (toc.refresh() >= 2) sheetEl.appendChild(toc.box);
+      sheetEl.appendChild(doc);
+    } else {
+      var blank = document.createElement("div");
+      blank.className = "blank";
+      blank.innerHTML = "<p>Dieses Thema ist noch leer.</p>";
+      var b2 = document.createElement("button");
+      b2.className = "btn primary";
+      b2.textContent = "Inhalt schreiben";
+      b2.addEventListener("click", startEditing);
+      blank.appendChild(b2);
+      sheetEl.appendChild(blank);
+    }
+  }
+
+  function excerpt(html, max) {
+    var tmp = document.createElement("div");
+    /* block boundaries are word boundaries — otherwise headings glue to the next line */
+    tmp.innerHTML = String(html || "")
+      .replace(/<\/(h[3-5]|p|li|td|th|tr)>/gi, "$& ")
+      .replace(/<br\s*\/?>/gi, "$& ");
+    var txt = tmp.textContent.replace(/\s+/g, " ").trim();
+    if (txt.length <= max) return txt;
+    var cut = txt.slice(0, max);
+    var sp = cut.lastIndexOf(" ");
+    return (sp > max * 0.6 ? cut.slice(0, sp) : cut) + " …";
+  }
+
+  function startHomeEditing() {
+    homeDraft = {
+      eyebrow: state.home.eyebrow,
+      title: state.home.title,
+      addEyebrow: false,
+      addTitle: false,
+      addIntro: false
+    };
+    homeEditing = true;
+    draft = null;
+    render();
+  }
+
+  function commitHome(skipRender) {
+    commitDraft();
+    if (homeDraft) {
+      var e = (homeDraft.eyebrow || "").replace(/\s+/g, " ").trim();
+      /* leer heißt leer — nicht heimlich auf den alten Titel zurückfallen */
+      var t = (homeDraft.title || "").replace(/\s+/g, " ").trim();
+      if (e !== state.home.eyebrow || t !== state.home.title) {
+        snapshot();
+        state.home.eyebrow = e;
+        state.home.title = t;
+        markDirty();
+      }
+    }
+    homeEditing = false;
+    homeDraft = null;
+    if (!skipRender) render();
+  }
+
+  function renderLanding() {
+    sheetEl.classList.add("home");
+
+    var all = allTopics();
+    var shown = homeEditing ? homeDraft : state.home;
+
+    var bar = document.createElement("div");
+    bar.className = "home-bar";
+    if (homeEditing) {
+      var done = document.createElement("button");
+      done.className = "btn primary";
+      done.textContent = "Fertig";
+      done.addEventListener("click", function () {
+        commitHome();
+      });
+      var cancel = document.createElement("button");
+      cancel.className = "btn ghost";
+      cancel.textContent = "Verwerfen";
+      cancel.addEventListener("click", function () {
+        homeEditing = false;
+        homeDraft = null;
+        draft = null;
+        render();
+      });
+      bar.appendChild(done);
+      bar.appendChild(cancel);
+    } else {
+      var edit = document.createElement("button");
+      edit.className = "btn";
+      edit.textContent = "Text bearbeiten";
+      edit.addEventListener("click", startHomeEditing);
+      bar.appendChild(edit);
+    }
+    /* Ein leeres Feld wird nicht gezeichnet — auch nicht beim Bearbeiten.
+       Zurückholen geht über die "+"-Knöpfe, die dann in der Leiste stehen. */
+    var introEmpty = isEmptyHtml(state.home.intro);
+    /* beim Bearbeiten zählt, was gerade im Editor steht, nicht der gesicherte Stand */
+    var introEmptyNow = homeEditing && draft !== null
+      ? isEmptyHtml(sanitize(draft))
+      : introEmpty;
+    var eyebrowEmpty = !String(shown.eyebrow || "").trim();
+    var titleEmpty = !String(shown.title || "").trim();
+    var showEyebrow = !eyebrowEmpty || (homeEditing && homeDraft.addEyebrow);
+    var showTitle = !titleEmpty || (homeEditing && homeDraft.addTitle);
+    var showIntro = homeEditing
+      ? !introEmptyNow || homeDraft.addIntro
+      : !introEmpty;
+
+    if (homeEditing) {
+      [["addEyebrow", showEyebrow, eyebrowEmpty, "Vorzeile", ".home-eyebrow[contenteditable]", "eyebrow"],
+       ["addTitle", showTitle, titleEmpty, "Titel", "h2.home-field[contenteditable]", "title"],
+       ["addIntro", showIntro, introEmptyNow, "Einleitung", ".editable", null]]
+        .reverse()
+        .forEach(function (f) {
+          /* + blendet ein, − nimmt wieder weg — auch samt Text.
+             Zurück holt es "Verwerfen" oder ⌘Z nach dem Fertigstellen. */
+          var shownNow = f[1];
+          var wasFilled = shownNow && !f[2];
+          var b = document.createElement("button");
+          b.className = "btn" + (wasFilled ? " ghost danger" : "");
+          b.textContent = (shownNow ? "− " : "+ ") + f[3];
+          b.addEventListener("click", function () {
+            /* Geschriebenes zuerst festhalten, dann einen Verlaufsschritt
+               setzen — sonst wäre das Ein-/Ausblenden nicht rückgängig. */
+            commitDraft();
+            snapshot();
+            homeDraft[f[0]] = !shownNow;
+            if (shownNow) {
+              if (f[5]) {
+                homeDraft[f[5]] = "";
+                state.home[f[5]] = "";
+              } else {
+                state.home.intro = "";
+              }
+              markDirty();
+              if (wasFilled) toast(f[3] + " entfernt — ↶ holt es zurück.");
+            }
+            render();
+            if (!shownNow) {
+              var el = sheetEl.querySelector(f[4]);
+              if (el) el.focus();
+            }
+          });
+          bar.insertBefore(b, bar.firstChild);
+        });
+    }
+    sheetEl.appendChild(bar);
+
+    var eyebrow = document.createElement("p");
+    eyebrow.className = "home-eyebrow home-field";
+    eyebrow.textContent = shown.eyebrow;
+
+    var title = document.createElement("h2");
+    title.className = "home-field";
+    title.textContent = shown.title;
+
+    if (homeEditing) {
+      [[eyebrow, "eyebrow", "Zeile über dem Titel"], [title, "title", "Titel der Sammlung"]]
+        .forEach(function (f) {
+          var el = f[0];
+          el.contentEditable = "true";
+          el.setAttribute("data-ph", f[2]);
+          el.setAttribute("aria-label", f[2]);
+          el.addEventListener("input", function () {
+            homeDraft[f[1]] = el.textContent;
+            markDirty();
+          });
+          el.addEventListener("keydown", function (e) {
+            if (e.key === "Enter") e.preventDefault();
+          });
+          el.addEventListener("paste", function (e) {
+            e.preventDefault();
+            var txt = (e.clipboardData || window.clipboardData)
+              .getData("text/plain")
+              .replace(/\s+/g, " ");
+            cmd("insertText", txt);
+          });
+        });
+    }
+
+    if (showEyebrow) sheetEl.appendChild(eyebrow);
+    if (showTitle) sheetEl.appendChild(title);
+
+    if (homeEditing && showIntro) {
+      sheetEl.appendChild(buildEditor({ html: state.home.intro, title: "Einleitung" }));
+    } else if (!homeEditing && !introEmpty) {
+      var lead = document.createElement("div");
+      lead.className = "doc home-lead-doc";
+      lead.innerHTML = displayHtml(state.home.intro);
+      lead.title = "Doppelklick zum Bearbeiten";
+      lead.addEventListener("dblclick", startHomeEditing);
+      sheetEl.appendChild(lead);
+    }
+
+    if (!all.length) {
+      var blank = document.createElement("div");
+      blank.className = "home-blank";
+      blank.textContent =
+        "Noch keine Themen angelegt. Leg ein Überthema an und darin dein erstes Thema.";
+      sheetEl.appendChild(blank);
+      return;
+    }
+
+    state.groups.forEach(function (g) {
+      var sec = document.createElement("section");
+      sec.className = "home-group";
+
+      /* Bei nur einem Überthema sagt die Überschrift nichts, was der Seitentitel
+         nicht schon sagt — dann bleibt sie weg. */
+      if (state.groups.length > 1) {
+        var h = document.createElement("h3");
+        var rename = document.createElement("button");
+        rename.type = "button";
+        rename.className = "grp-rename";
+        rename.textContent = g.name;
+        rename.title = "Überthema umbenennen";
+        rename.addEventListener("click", function () {
+          renameGroup(g);
+        });
+        var count = document.createElement("em");
+        count.textContent =
+          g.topics.length + (g.topics.length === 1 ? " Thema" : " Themen");
+        h.appendChild(rename);
+        h.appendChild(count);
+        sec.appendChild(h);
+      }
+
+      if (!g.topics.length) {
+        var none = document.createElement("div");
+        none.className = "home-blank";
+        none.textContent = "Noch keine Themen in diesem Überthema.";
+        sec.appendChild(none);
+        sheetEl.appendChild(sec);
+        return;
+      }
+
+      var grid = document.createElement("div");
+      grid.className = "cards";
+      g.topics.forEach(function (t) {
+        var empty = isEmptyHtml(t.html);
+        var c = document.createElement("button");
+        c.className = "card" + (empty ? " empty" : "");
+        c.type = "button";
+        c.innerHTML =
+          (String(t.num || "").trim() ? '<span class="n">' + esc(t.num) + "</span>" : "") +
+          '<span class="t">' + esc(t.title) + "</span>" +
+          (empty
+            ? '<span class="chip">Noch leer</span>'
+            : '<span class="x">' + esc(excerpt(t.html, 130)) + "</span>");
+        c.addEventListener("click", function () {
+          select(t.id);
+        });
+        grid.appendChild(c);
+      });
+      sec.appendChild(grid);
+      sheetEl.appendChild(sec);
+    });
+  }
+
+  /* Gliederung aus den eigenen Überschriften — keine zweite Quelle, die
+     auseinanderlaufen kann. refresh() baut die Liste neu; beim Schreiben wird
+     sie nach jeder Änderung aufgerufen, damit sie mitwächst. */
+  /* Nach dem Sprung kurz aufleuchten, damit man sieht, wo man gelandet ist.
+     Die Klasse verschwindet von selbst wieder; beim Sichern fällt sie ohnehin
+     weg, weil Attribute dabei entfernt werden. */
+  function flashHeading(el) {
+    if (!el) return;
+    if (el._flash) clearTimeout(el._flash);
+    el.classList.remove("toc-flash");
+    void el.offsetWidth;
+    el.classList.add("toc-flash");
+    el._flash = setTimeout(function () {
+      el.classList.remove("toc-flash");
+      el._flash = null;
+    }, 2400);
+  }
+
+  function buildToc(root, onPick) {
+    var collapsed = false;
+    try {
+      collapsed = localStorage.getItem("tg-toc") === "0";
+    } catch (e) {}
+
+    var box = document.createElement("nav");
+    box.className = "toc";
+    box.setAttribute("aria-label", "Gliederung");
+
+    var head = document.createElement("div");
+    head.className = "toc-head";
+    var label = document.createElement("span");
+    head.appendChild(label);
+
+    var toggle = document.createElement("button");
+    toggle.className = "toc-toggle";
+    toggle.type = "button";
+    head.appendChild(toggle);
+
+    var list = document.createElement("ol");
+    /* welche Hauptpunkte gerade zugeklappt sind — überlebt das Neuaufbauen
+       der Liste beim Tippen */
+    var zugeklappt = {};
+
+    function sync() {
+      list.style.display = collapsed ? "none" : "";
+      toggle.textContent = collapsed ? "Zeigen" : "Ausblenden";
+      box.style.paddingBottom = collapsed ? "13px" : "";
+    }
+    toggle.addEventListener("click", function () {
+      collapsed = !collapsed;
+      try {
+        localStorage.setItem("tg-toc", collapsed ? "0" : "1");
+      } catch (e) {}
+      sync();
+    });
+
+    function refresh() {
+      var heads = [].slice.call(root.querySelectorAll("h3, h4"));
+      box.hidden = heads.length < 2;
+      label.innerHTML = "<b>Gliederung</b> · " + heads.length + " Abschnitte";
+      list.innerHTML = "";
+
+      var offeneGruppe = null;
+      heads.forEach(function (h, i) {
+        h.id = "abschnitt-" + i;
+        var jump = document.createElement("button");
+        jump.type = "button";
+        jump.className = "jump";
+        jump.textContent = h.textContent.trim() || "(ohne Überschrift)";
+        /* nicht den Cursor aus dem Text holen, bevor der Sprung passiert */
+        jump.addEventListener("mousedown", function (e) {
+          e.preventDefault();
+        });
+        jump.addEventListener("click", function () {
+          onPick(h);
+        });
+
+        /* Unterpunkte hängen unter dem Hauptpunkt darüber */
+        if (h.tagName === "H4" && offeneGruppe) {
+          var subLi = document.createElement("li");
+          subLi.className = "sub";
+          subLi.appendChild(jump);
+          offeneGruppe.subs.appendChild(subLi);
+          return;
+        }
+
+        var li = document.createElement("li");
+        li.className = "grp" + (h.tagName === "H4" ? " sub" : "");
+        var row = document.createElement("div");
+        row.className = "row";
+        var tog = document.createElement("button");
+        tog.type = "button";
+        tog.className = "sub-toggle empty";
+        tog.textContent = "▼";
+        tog.title = "Unterpunkte ein- und ausklappen";
+        tog.setAttribute("aria-label", "Unterpunkte ein- und ausklappen");
+        var subs = document.createElement("ol");
+        subs.className = "toc-subs";
+        row.appendChild(tog);
+        row.appendChild(jump);
+        li.appendChild(row);
+        li.appendChild(subs);
+        list.appendChild(li);
+
+        var key = list.children.length - 1;
+        tog.addEventListener("click", function () {
+          var zu = !li.classList.contains("closed");
+          li.classList.toggle("closed", zu);
+          tog.setAttribute("aria-expanded", zu ? "false" : "true");
+          if (zu) zugeklappt[key] = true;
+          else delete zugeklappt[key];
+          slide(subs, !zu);
+        });
+
+        offeneGruppe = { subs: subs, li: li, tog: tog, key: key };
+      });
+
+      /* Umschalter nur dort zeigen, wo es wirklich Unterpunkte gibt */
+      [].slice.call(list.children).forEach(function (li, i) {
+        var subs = li.querySelector("ol");
+        var tog = li.querySelector(".sub-toggle");
+        if (!subs || !subs.children.length) return;
+        tog.classList.remove("empty");
+        tog.setAttribute("aria-expanded", zugeklappt[i] ? "false" : "true");
+        if (zugeklappt[i]) {
+          li.classList.add("closed");
+          subs.style.height = "0px";
+        }
+      });
+      return heads.length;
+    }
+
+    sync();
+    box.appendChild(head);
+    box.appendChild(list);
+    return { box: box, refresh: refresh };
+  }
+
+  function startEditing() {
+    draft = null;
+    editing = true;
+    render();
+  }
+
+  /* ---------- editor ---------- */
+
+  var ALLOWED = {
+    H3: 1, H4: 1, H5: 1, P: 1, UL: 1, OL: 1, LI: 1,
+    STRONG: 1, B: 1, EM: 1, I: 1, U: 1, BR: 1, HR: 1,
+    TABLE: 1, THEAD: 1, TBODY: 1, TR: 1, TH: 1, TD: 1, CODE: 1
+  };
+  var RENAME = { DIV: "p", H1: "h3", H2: "h3", H6: "h5", BLOCKQUOTE: "p" };
+
+  function sanitize(html) {
+    var box = document.createElement("div");
+    box.innerHTML = html;
+    var els = [].slice.call(box.querySelectorAll("*"));
+    els.forEach(function (el) {
+      if (!el.parentNode) return;
+      var tag = el.tagName;
+      if (tag === "SCRIPT" || tag === "STYLE" || tag === "IFRAME" || tag === "OBJECT") {
+        el.remove();
+        return;
+      }
+      if (RENAME[tag]) {
+        var n = document.createElement(RENAME[tag]);
+        while (el.firstChild) n.appendChild(el.firstChild);
+        el.parentNode.replaceChild(n, el);
+        return;
+      }
+      if (!ALLOWED[tag]) {
+        var p = el.parentNode;
+        while (el.firstChild) p.insertBefore(el.firstChild, el);
+        el.remove();
+        return;
+      }
+      [].slice.call(el.attributes).forEach(function (a) {
+        el.removeAttribute(a.name);
+      });
+    });
+    /* execCommand sometimes wraps lists or tables in a paragraph — unwrap those */
+    [].slice.call(box.querySelectorAll("p")).forEach(function (p) {
+      if (!p.parentNode || !p.querySelector("ul, ol, table, hr, h3, h4, h5")) return;
+      var par = p.parentNode;
+      while (p.firstChild) par.insertBefore(p.firstChild, p);
+      p.remove();
+    });
+    box.innerHTML = box.innerHTML.replace(/<p>\s*(<br>)?\s*<\/p>/g, "");
+    return box.innerHTML.trim();
+  }
+
+  function isEmptyHtml(html) {
+    if (!html) return true;
+    var box = document.createElement("div");
+    box.innerHTML = html;
+    return !box.textContent.trim() && !box.querySelector("hr, table, img");
+  }
+
+  /* wrap loose tables so wide ones scroll instead of stretching the page */
+  function displayHtml(html) {
+    var box = document.createElement("div");
+    box.innerHTML = html;
+    [].slice.call(box.querySelectorAll("table")).forEach(function (t) {
+      if (t.parentNode && t.parentNode.classList.contains("table-wrap")) return;
+      var w = document.createElement("div");
+      w.className = "table-wrap";
+      t.parentNode.replaceChild(w, t);
+      w.appendChild(t);
+    });
+    return box.innerHTML;
+  }
+
+  function cmd(name, value) {
+    try {
+      if (value === undefined) document.execCommand(name, false);
+      else document.execCommand(name, false, value);
+    } catch (e) {}
+  }
+
+  function selectionIn(el, tagRe) {
+    var s = window.getSelection();
+    if (!s || !s.rangeCount) return null;
+    var n = s.getRangeAt(0).startContainer;
+    while (n && n !== el) {
+      if (n.nodeType === 1 && tagRe.test(n.tagName)) return n;
+      n = n.parentNode;
+    }
+    return null;
+  }
+
+  function buildEditor(topic) {
+    var ed = document.createElement("div");
+    ed.className = "editor";
+
+    var bar = document.createElement("div");
+    bar.className = "fmtbar";
+
+    var box = document.createElement("div");
+    box.className = "doc editable";
+    box.contentEditable = "true";
+    box.spellcheck = true;
+    box.setAttribute("role", "textbox");
+    box.setAttribute("aria-multiline", "true");
+    box.setAttribute("aria-label", "Inhalt von " + topic.title);
+    /* Jede Änderung im Text wird als Schritt in den gemeinsamen Verlauf gelegt —
+       auch die, die der Browser selbst nicht kennt (Tabellenzeilen etwa). */
+    var textKey = topic.id || "__home";
+    var toc = null;
+    var histPrev = "";
+    var histTime = 0;
+    var histKind = "";
+    var inRun = false;
+
+    box.innerHTML = draft !== null ? draft : topic.html || "<p><br></p>";
+    histPrev = box.innerHTML;
+
+    cmd("styleWithCSS", "false");
+    cmd("defaultParagraphSeparator", "p");
+
+    var savedRange = null;
+
+    function selInBox() {
+      var s = window.getSelection();
+      if (!s || !s.rangeCount) return false;
+      return box.contains(s.getRangeAt(0).commonAncestorContainer);
+    }
+
+    function remember() {
+      if (selInBox()) savedRange = window.getSelection().getRangeAt(0).cloneRange();
+    }
+
+    /* toolbar clicks must not move the caret — put it back where the user left it.
+       Read the selection BEFORE focusing: focusing collapses it to the start. */
+    function restore() {
+      remember();
+      if (document.activeElement !== box) {
+        try {
+          box.focus({ preventScroll: true });
+        } catch (e) {
+          box.focus();
+        }
+      }
+      var s = window.getSelection();
+      if (!savedRange) {
+        savedRange = document.createRange();
+        savedRange.selectNodeContents(box);
+        savedRange.collapse(false);
+      }
+      s.removeAllRanges();
+      s.addRange(savedRange);
+    }
+
+    function changed(kind) {
+      if (inRun && kind !== "cmd") return;
+      draft = box.innerHTML;
+      if (sanitize(draft) !== (topic.html || "")) markDirty();
+      histRecord(kind === "cmd" ? "cmd" : "type");
+      if (toc) toc.refresh();
+      syncTools();
+    }
+
+    /* Tippen wird zu einem Schritt zusammengefasst, solange es zügig weitergeht;
+       jeder Befehl ist ein eigener Schritt. */
+    function histRecord(kind) {
+      var now = Date.now();
+      var join = kind === "type" && histKind === "type" && now - histTime < 700;
+      if (!join && histPrev !== box.innerHTML) {
+        pushUndo({ kind: "text", key: textKey, html: histPrev });
+      }
+      histPrev = box.innerHTML;
+      histTime = now;
+      histKind = kind;
+    }
+
+    /* Block commands replace the caret's text node, so a node reference is useless.
+       Measure the caret as a character offset into the whole text instead. */
+    function caretOffset() {
+      var s = window.getSelection();
+      if (!s || !s.rangeCount || !box.contains(s.anchorNode)) return null;
+      var live = s.getRangeAt(0);
+      var r = document.createRange();
+      r.selectNodeContents(box);
+      try {
+        r.setEnd(live.endContainer, live.endOffset);
+      } catch (e) {
+        return null;
+      }
+      return r.toString().length;
+    }
+
+    function setCaret(off) {
+      if (off === null) return;
+      var walker = document.createTreeWalker(box, NodeFilter.SHOW_TEXT, null);
+      var n;
+      var acc = 0;
+      var s = window.getSelection();
+      while ((n = walker.nextNode())) {
+        var len = n.nodeValue.length;
+        if (acc + len >= off) {
+          var r = document.createRange();
+          r.setStart(n, off - acc);
+          r.collapse(true);
+          s.removeAllRanges();
+          s.addRange(r);
+          return;
+        }
+        acc += len;
+      }
+      var end = document.createRange();
+      end.selectNodeContents(box);
+      end.collapse(false);
+      s.removeAllRanges();
+      s.addRange(end);
+    }
+
+    /* Chrome's list command wraps the new <ul> inside the old <p>, which is
+       invalid and breaks every later edit — flatten it right away. */
+    function normalizeDom() {
+      [].slice.call(box.querySelectorAll("p, h3, h4, h5")).forEach(function (el) {
+        if (!el.parentNode || !el.querySelector("ul, ol, table, hr, h3, h4, h5, p")) return;
+        var par = el.parentNode;
+        while (el.firstChild) par.insertBefore(el.firstChild, el);
+        el.remove();
+      });
+    }
+
+    function run(fn, keepCaret) {
+      restore();
+      var off = keepCaret === false ? null : caretOffset();
+      inRun = true;
+      try {
+        fn();
+        normalizeDom();
+        setCaret(off);
+        remember();
+      } finally {
+        inRun = false;
+      }
+      changed("cmd");
+    }
+
+    /* a list item or table may not live inside a heading — drop the heading first */
+    function unheading() {
+      if (selectionIn(box, /^(H3|H4|H5)$/)) cmd("formatBlock", "p");
+    }
+
+    /* …and a heading may not live inside a list — leave the list first */
+    function unlist() {
+      var l = selectionIn(box, /^(UL|OL)$/);
+      if (l) cmd(l.tagName === "UL" ? "insertUnorderedList" : "insertOrderedList");
+    }
+
+    /* Tables and rules belong between blocks, not inside a heading or a list item.
+       Open a fresh paragraph after the current block and put the caret there. */
+    function escapeBlock() {
+      var target = selectionIn(box, /^(UL|OL)$/) || selectionIn(box, /^(H3|H4|H5)$/);
+      if (!target) return;
+      while (
+        target.parentNode &&
+        target.parentNode !== box &&
+        /^(UL|OL|LI)$/.test(target.parentNode.tagName)
+      ) {
+        target = target.parentNode;
+      }
+      var p = document.createElement("p");
+      p.appendChild(document.createElement("br"));
+      target.parentNode.insertBefore(p, target.nextSibling);
+      var r = document.createRange();
+      r.setStart(p, 0);
+      r.collapse(true);
+      var s = window.getSelection();
+      s.removeAllRanges();
+      s.addRange(r);
+    }
+
+    /* --- toolbar --- */
+
+    var tools = [];
+
+    function tool(html, title, fn, state, keepCaret) {
+      var b = document.createElement("button");
+      b.className = "fmt" + (state ? " toggle" : "");
+      b.type = "button";
+      b.innerHTML = html;
+      b.title = title;
+      b.setAttribute("aria-label", title);
+      b.addEventListener("mousedown", function (e) {
+        e.preventDefault();
+      });
+      b.addEventListener("click", function () {
+        run(fn, keepCaret);
+      });
+      bar.appendChild(b);
+      if (state) tools.push({ btn: b, is: state });
+      return b;
+    }
+    function sep() {
+      var d = document.createElement("div");
+      d.className = "fmt-sep";
+      bar.appendChild(d);
+    }
+
+    /* Verlaufs-Knöpfe laufen nicht durch run(): sie setzen den Inhalt selbst
+       und würden sonst als neuer Schritt im Verlauf landen. */
+    function toolRaw(html, title, fn) {
+      var b = document.createElement("button");
+      b.className = "fmt";
+      b.type = "button";
+      b.innerHTML = html;
+      b.title = title;
+      b.setAttribute("aria-label", title);
+      b.addEventListener("mousedown", function (e) {
+        e.preventDefault();
+      });
+      b.addEventListener("click", fn);
+      bar.appendChild(b);
+      return b;
+    }
+
+    function block(tag) {
+      return function () {
+        var cur = selectionIn(box, /^(H3|H4|H5|P)$/);
+        var off = cur && cur.tagName === tag.toUpperCase();
+        unlist();
+        cmd("formatBlock", off ? "p" : tag);
+      };
+    }
+
+    toolRaw("↶", "Rückgängig (⌘Z)", undo);
+    toolRaw("↷", "Wiederholen (⇧⌘Z)", redo);
+    sep();
+    tool('<span class="h">H</span>', "Überschrift", block("h3"), function () {
+      return !!selectionIn(box, /^H3$/);
+    });
+    tool('<span class="h sm">H</span>', "Zwischenüberschrift", block("h4"), function () {
+      return !!selectionIn(box, /^H4$/);
+    });
+    sep();
+    tool('<span class="b">F</span>', "Fett (⌘B)", function () {
+      cmd("bold");
+    }, function () {
+      try { return document.queryCommandState("bold"); } catch (e) { return false; }
+    });
+    tool('<span class="i">K</span>', "Kursiv (⌘I)", function () {
+      cmd("italic");
+    }, function () {
+      try { return document.queryCommandState("italic"); } catch (e) { return false; }
+    });
+    sep();
+    tool("•", "Aufzählung mit Punkten", function () {
+      unheading();
+      cmd("insertUnorderedList");
+    }, function () {
+      var l = selectionIn(box, /^(UL|OL)$/);
+      return !!l && l.tagName === "UL";
+    });
+    tool("1.", "Nummerierte Aufzählung", function () {
+      unheading();
+      cmd("insertOrderedList");
+    }, function () {
+      var l = selectionIn(box, /^(UL|OL)$/);
+      return !!l && l.tagName === "OL";
+    });
+    tool("⇥", "Einrücken (Tab)", function () {
+      cmd("indent");
+    });
+    tool("⇤", "Ausrücken (Shift+Tab)", function () {
+      cmd("outdent");
+    });
+    sep();
+    tool("▦", "Tabelle einfügen", function () {
+      escapeBlock();
+      cmd(
+        "insertHTML",
+        '<table id="tg-new"><thead><tr><th>Spalte A</th><th>Spalte B</th></tr></thead>' +
+          "<tbody><tr><td>Wert</td><td>Wert</td></tr>" +
+          "<tr><td>Wert</td><td>Wert</td></tr></tbody></table><p><br></p>"
+      );
+      var t = box.querySelector("#tg-new");
+      if (t) {
+        t.removeAttribute("id");
+        focusCell(t.querySelector("th"));
+      }
+    }, null, false);
+    tool("—", "Trennlinie einfügen", function () {
+      escapeBlock();
+      cmd("insertHorizontalRule");
+    }, null, false);
+
+    var spacer = document.createElement("div");
+    spacer.className = "fmt-spacer";
+    bar.appendChild(spacer);
+
+    tool("Aa", "Als normalen Text formatieren", function () {
+      cmd("formatBlock", "p");
+    });
+    tool("⌫", "Formatierung im markierten Text entfernen", function () {
+      cmd("removeFormat");
+    });
+
+    function syncTools() {
+      remember();
+      placeRowAdd();
+      tools.forEach(function (t) {
+        var on = false;
+        try { on = !!t.is(); } catch (e) {}
+        t.btn.setAttribute("aria-pressed", on ? "true" : "false");
+      });
+    }
+
+    /* --- tables --- */
+
+    function addRow() {
+      var cell = selectionIn(box, /^(TD|TH)$/);
+      var table = selectionIn(box, /^TABLE$/);
+      if (!table) return null;
+      var bodyEl = table.tBodies[0] || table;
+      var model = cell && cell.tagName === "TD" ? cell.parentNode : bodyEl.rows[bodyEl.rows.length - 1];
+      var cols = model ? model.cells.length : 2;
+      var tr = document.createElement("tr");
+      for (var i = 0; i < cols; i++) {
+        var td = document.createElement("td");
+        td.appendChild(document.createElement("br"));
+        tr.appendChild(td);
+      }
+      bodyEl.appendChild(tr);
+      var r = document.createRange();
+      r.selectNodeContents(tr.cells[0]);
+      r.collapse(true);
+      var s = window.getSelection();
+      s.removeAllRanges();
+      s.addRange(r);
+      return tr;
+    }
+
+    function nextCell(cell, back) {
+      var all = [].slice.call(cell.closest("table").querySelectorAll("th, td"));
+      var i = all.indexOf(cell) + (back ? -1 : 1);
+      return all[i] || null;
+    }
+
+    function focusCell(cell) {
+      var r = document.createRange();
+      r.selectNodeContents(cell);
+      var s = window.getSelection();
+      s.removeAllRanges();
+      s.addRange(r);
+    }
+
+    /* --- input handling --- */
+
+    box.addEventListener("input", function () {
+      changed("type");
+    });
+    box.addEventListener("keyup", syncTools);
+    box.addEventListener("mouseup", syncTools);
+
+    box.addEventListener("paste", function (e) {
+      e.preventDefault();
+      var text = (e.clipboardData || window.clipboardData).getData("text/plain");
+      cmd("insertText", text);
+      changed("cmd");
+    });
+
+    box.addEventListener("keydown", function (e) {
+      var mod = e.metaKey || e.ctrlKey;
+      var cell = selectionIn(box, /^(TD|TH)$/);
+
+
+      if (e.key === "Tab") {
+        if (cell) {
+          e.preventDefault();
+          var target = nextCell(cell, e.shiftKey);
+          if (!target && !e.shiftKey) {
+            var tr = addRow();
+            if (tr) changed("cmd");
+            return;
+          }
+          if (target) focusCell(target);
+          return;
+        }
+        if (selectionIn(box, /^LI$/)) {
+          e.preventDefault();
+          run(function () {
+            cmd(e.shiftKey ? "outdent" : "indent");
+          });
+        }
+        return;
+      }
+
+      if (mod && e.key.toLowerCase() === "b") {
+        e.preventDefault();
+        run(function () { cmd("bold"); });
+      } else if (mod && e.key.toLowerCase() === "i") {
+        e.preventDefault();
+        run(function () { cmd("italic"); });
+      } else if (e.key === "Enter" && !e.shiftKey && selectionIn(box, /^(H3|H4|H5)$/)) {
+        /* a heading is a title, not a paragraph style — the next line is body text */
+        e.preventDefault();
+        cmd("insertParagraph");
+        cmd("formatBlock", "p");
+        changed("cmd");
+      }
+    });
+
+    var rowAdd = document.createElement("button");
+    rowAdd.className = "row-add";
+    rowAdd.type = "button";
+    rowAdd.innerHTML = "+ Zeile";
+    rowAdd.title = "Eine Zeile an diese Tabelle anhängen";
+    rowAdd.addEventListener("mousedown", function (e) {
+      e.preventDefault();
+    });
+    rowAdd.addEventListener("click", function () {
+      restore();
+      if (addRow()) changed("cmd");
+      placeRowAdd();
+    });
+
+    /* Show it only while the caret sits in the last row of a table, parked
+       just under that table so it reads as belonging to it. */
+    function placeRowAdd() {
+      var cell = selectionIn(box, /^(TD|TH)$/);
+      var table = cell && selectionIn(box, /^TABLE$/);
+      if (!table) {
+        rowAdd.setAttribute("data-on", "false");
+        return;
+      }
+      var rows = (table.tBodies[0] || table).rows;
+      var last = rows[rows.length - 1];
+      if (!last || cell.parentNode !== last) {
+        rowAdd.setAttribute("data-on", "false");
+        return;
+      }
+      var er = ed.getBoundingClientRect();
+      var tr = table.getBoundingClientRect();
+      rowAdd.setAttribute("data-on", "true");
+      /* straddle the table's bottom-right corner: reads as part of the table
+         and covers its own border rather than the paragraph below */
+      rowAdd.style.left = Math.round(tr.right - er.left - rowAdd.offsetWidth) + "px";
+      rowAdd.style.top = Math.round(tr.bottom - er.top - rowAdd.offsetHeight / 2) + "px";
+    }
+
+    /* Gliederung auch beim Schreiben: ein Klick springt zur Überschrift und
+       setzt den Cursor hinein, damit sie sich gleich ändern lässt. */
+    toc = buildToc(box, function (h) {
+      h.scrollIntoView({ block: "center", behavior: "auto" });
+      flashHeading(h);
+      var r = document.createRange();
+      r.selectNodeContents(h);
+      r.collapse(false);
+      try {
+        box.focus({ preventScroll: true });
+      } catch (e) {
+        box.focus();
+      }
+      var sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(r);
+      remember();
+      syncTools();
+    });
+    toc.refresh();
+
+    ed.appendChild(toc.box);
+    ed.appendChild(bar);
+    ed.appendChild(box);
+    ed.appendChild(rowAdd);
+
+    activeSync = syncTools;
+    /* So kommt der Verlauf an den offenen Editor heran, statt den Text
+       über das Dokument zurückzuschreiben. */
+    activeText = {
+      key: textKey,
+      get: function () {
+        return box.innerHTML;
+      },
+      set: function (html) {
+        box.innerHTML = html;
+        draft = box.innerHTML;
+        histPrev = box.innerHTML;
+        histKind = "";
+        try {
+          box.focus({ preventScroll: true });
+        } catch (e) {
+          box.focus();
+        }
+        setCaret(box.textContent.length);
+        remember();
+        if (toc) toc.refresh();
+        syncTools();
+      }
+    };
+
+    setTimeout(function () {
+      try {
+        box.focus({ preventScroll: true });
+      } catch (e) {
+        box.focus();
+      }
+      var r = document.createRange();
+      r.selectNodeContents(box);
+      r.collapse(true);
+      var s = window.getSelection();
+      s.removeAllRanges();
+      s.addRange(r);
+      document.querySelector(".main").scrollTop = 0;
+      syncTools();
+    }, 0);
+
+    return ed;
+  }
+
+  function render() {
+    activeSync = null;
+    activeText = null;
+    document.title = state.home.title || "Themengebiete";
+    renderRail();
+    renderMain();
+    syncUndo();
+  }
+
+  function select(id) {
+    if (homeEditing) commitHome(true);
+    else if (editing) commitDraft();
+    editing = false;
+    draft = null;
+    state.selected = id;
+    render();
+    document.querySelector(".main").scrollTop = 0;
+  }
+
+  function commitDraft() {
+    if (draft !== null) {
+      var clean = sanitize(draft);
+      if (homeEditing) {
+        if (clean !== state.home.intro) {
+          state.home.intro = clean;
+          markDirty();
+        }
+      } else {
+        var cur = current();
+        if (cur && clean !== cur.topic.html) {
+          cur.topic.html = clean;
+          markDirty();
+        }
+      }
+    }
+    draft = null;
+  }
+
+  /* ---------- mutations ---------- */
+
+  function addGroup() {
+    modal({
+      title: "Neues Überthema",
+      fields: [{ key: "name", label: "Name", value: "", placeholder: "z. B. Sprache", required: true }],
+      confirm: "Anlegen",
+      onOk: function (v) {
+        snapshot();
+        state.groups.push({ id: uid("g"), name: v.name, topics: [] });
+        markDirty();
+        render();
+      }
+    });
+  }
+
+  function renameGroup(g) {
+    modal({
+      title: "Überthema umbenennen",
+      text: "Name leer lassen und speichern löscht das Überthema.",
+      fields: [{ key: "name", label: "Name", value: g.name }],
+      onOk: function (v) {
+        /* leer heißt löschen — nichts bleibt kommentarlos stehen */
+        if (!v.name) {
+          deleteGroup(g);
+          return;
+        }
+        snapshot();
+        g.name = v.name;
+        markDirty();
+        render();
+      }
+    });
+  }
+
+
+  function moveGroup(i, d) {
+    var j = i + d;
+    if (j < 0 || j >= state.groups.length) return;
+    snapshot();
+    var tmp = state.groups[i];
+    state.groups[i] = state.groups[j];
+    state.groups[j] = tmp;
+    markDirty();
+    render();
+  }
+
+  function addTopic(g) {
+    modal({
+      title: "Neues Thema",
+      text: "In „" + g.name + "“",
+      fields: [
+        { key: "num", label: "Nr.", value: String(g.topics.length + 1) },
+        { key: "title", label: "Titel", value: "", placeholder: "z. B. Recht", required: true }
+      ],
+      confirm: "Anlegen",
+      onOk: function (v) {
+        snapshot();
+        var t = { id: uid("t"), num: v.num, title: v.title, html: "" };
+        g.topics.push(t);
+        state.selected = t.id;
+        markDirty();
+        render();
+      }
+    });
+  }
+
+  function renameTopic(t) {
+    modal({
+      title: "Thema umbenennen",
+      fields: [
+        { key: "num", label: "Nr.", value: t.num },
+        { key: "title", label: "Titel", value: t.title }
+      ],
+      text: "Titel leer lassen und speichern löscht das Thema.",
+      onOk: function (v) {
+        if (!v.title) {
+          var home = findGroupOf(t);
+          if (home) deleteTopic(home, t);
+          return;
+        }
+        snapshot();
+        t.num = v.num;
+        t.title = v.title;
+        markDirty();
+        render();
+      }
+    });
+  }
+
+  function findGroupOf(t) {
+    var hit = null;
+    state.groups.forEach(function (g) {
+      if (g.topics.indexOf(t) >= 0) hit = g;
+    });
+    return hit;
+  }
+
+  function deleteGroup(g) {
+    function drop() {
+      snapshot();
+      state.groups = state.groups.filter(function (x) {
+        return x !== g;
+      });
+      if (state.selected && !findTopic(state.selected)) state.selected = null;
+      markDirty();
+      render();
+    }
+    if (!g.topics.length) {
+      drop();
+      return;
+    }
+    modal({
+      title: "Überthema löschen?",
+      text:
+        "\u201E" + g.name + "\u201C wird mit " + g.topics.length +
+        (g.topics.length === 1 ? " Thema" : " Themen") + " gelöscht.",
+      confirm: "Löschen",
+      danger: true,
+      onOk: drop
+    });
+  }
+
+  function deleteTopic(g, t) {
+    modal({
+      title: "Thema löschen?",
+      text: "„" + t.title + "“ wird mit allen Inhalten gelöscht.",
+      confirm: "Löschen",
+      danger: true,
+      onOk: function () {
+        snapshot();
+        g.topics = g.topics.filter(function (x) {
+          return x !== t;
+        });
+        state.selected = null;
+        markDirty();
+        render();
+      }
+    });
+  }
+
+  /* Die Nummer ist die Position — nach jedem Verschieben neu durchzählen,
+     über alle Überthemen hinweg. */
+  function renumber() {
+    var n = 0;
+    state.groups.forEach(function (g) {
+      g.topics.forEach(function (t) {
+        n++;
+        t.num = String(n);
+      });
+    });
+  }
+
+  function moveTopic(g, i, d) {
+    var j = i + d;
+    if (j < 0 || j >= g.topics.length) return;
+    snapshot();
+    var tmp = g.topics[i];
+    g.topics[i] = g.topics[j];
+    g.topics[j] = tmp;
+    renumber();
+    markDirty();
+    render();
+  }
+
+  /* Ziehen in der Seitenleiste: Thema an eine neue Stelle setzen */
+  var dragId = null;
+
+  function dropTopic(id, toGroup, index) {
+    var hit = findTopic(id);
+    if (!hit) return;
+    var from = hit.group;
+    var t = hit.topic;
+    var alt = from.topics.indexOf(t);
+    if (from === toGroup) {
+      if (index > alt) index--;
+      if (index === alt) return;
+    }
+    snapshot();
+    from.topics.splice(alt, 1);
+    toGroup.topics.splice(index, 0, t);
+    renumber();
+    markDirty();
+    render();
+  }
+
+  function clearDropMarks() {
+    [].slice.call(railEl.querySelectorAll(".drop-before, .drop-after, .drop-end"))
+      .forEach(function (el) {
+        el.classList.remove("drop-before", "drop-after", "drop-end");
+      });
+  }
+
+  function moveTopicToGroup(from, t, toId) {
+    var to = state.groups.filter(function (g) {
+      return g.id === toId;
+    })[0];
+    if (!to || to === from) return;
+    snapshot();
+    from.topics = from.topics.filter(function (x) {
+      return x !== t;
+    });
+    to.topics.push(t);
+    renumber();
+    markDirty();
+    render();
+  }
+
+  /* ---------- Speichern über den eigenen Server ---------- */
+
+  var CFG_KEY = "tg-server";
+  var cfg = null;
+  try {
+    cfg = JSON.parse(localStorage.getItem(CFG_KEY) || "null");
+  } catch (e) {}
+
+  function cfgOk(c) {
+    return !!(c && typeof c.url === "string" && /^https?:\/\//.test(c.url) && c.token);
+  }
+
+  function serverFetch(method, body) {
+    return fetch(cfg.url.replace(/\/+$/, "") + "/data", {
+      method: method,
+      headers: {
+        "Authorization": "Bearer " + cfg.token,
+        "Content-Type": "application/json"
+      },
+      body: body
+    }).then(function (r) {
+      if (r.status === 401) throw new Error("passwort");
+      if (!r.ok) throw new Error("http " + r.status);
+      return r;
+    });
+  }
+
+  function askServer(erstmalig) {
+    modal({
+      title: erstmalig ? "Mit deinem Speicher verbinden" : "Verbindung ändern",
+      text: "Adresse deines Speichers und das Passwort, das du dort gesetzt hast.",
+      fields: [
+        { key: "url", label: "Adresse", value: (cfg && cfg.url) || "",
+          placeholder: "https://…workers.dev", required: true },
+        { key: "token", label: "Passwort", value: (cfg && cfg.token) || "", required: true }
+      ],
+      stack: true,
+      confirm: "Verbinden",
+      onOk: function (v) {
+        cfg = { url: v.url, token: v.token };
+        try {
+          localStorage.setItem(CFG_KEY, JSON.stringify(cfg));
+        } catch (e) {}
+        laden();
+      }
+    });
+  }
+
+  function save() {
+    if (homeEditing) {
+      commitHome(true);
+    } else if (editing) {
+      commitDraft();
+      editing = false;
+    }
+    draft = null;
+    homeDraft = null;
+    render();
+    if (readOnly || !cfgOk(cfg)) {
+      toast("Keine Verbindung zum Speicher. Tippe oben auf den Stand, um sie einzurichten.");
+      return;
+    }
+    saveBtn.disabled = true;
+    statusText.textContent = "Wird gesichert …";
+    var stand = JSON.stringify(state);
+    try {
+      /* Bis der Server bestätigt hat, liegt der Stand lokal —
+         sonst wäre er bei einem Verbindungsabbruch weg. */
+      localStorage.setItem("tg-pending", stand);
+    } catch (e) {}
+    serverFetch("PUT", stand).then(
+      function () {
+        dirty = false;
+        statusEl.classList.remove("dirty");
+        statusText.textContent = "Gesichert";
+        try {
+          localStorage.removeItem("tg-pending");
+        } catch (e) {}
+      },
+      function (err) {
+        saveBtn.disabled = false;
+        statusEl.classList.add("dirty");
+        if (String(err && err.message) === "passwort") {
+          statusText.textContent = "Passwort falsch";
+          toast("Das Passwort stimmt nicht. Tippe oben auf den Stand, um es zu ändern.");
+        } else {
+          statusText.textContent = "Nicht gesichert";
+          toast("Sichern hat nicht geklappt — deine Änderung liegt sicher auf diesem Gerät. Versuch es gleich nochmal.");
+        }
+      }
+    );
+  }
+
+  saveBtn.addEventListener("click", save);
+  undoBtn.addEventListener("click", undo);
+  document.getElementById("accent-btn").addEventListener("click", pickAccent);
+
+  document.addEventListener("keydown", function (e) {
+    var mod = e.metaKey || e.ctrlKey;
+    if (mod && e.key.toLowerCase() === "s") {
+      e.preventDefault();
+      if (!saveBtn.disabled) save();
+    }
+    if (mod && e.key.toLowerCase() === "z") {
+      e.preventDefault();
+      if (e.shiftKey) redo();
+      else undo();
+    }
+  });
+
+  window.addEventListener("beforeunload", function (e) {
+    if (dirty) {
+      e.preventDefault();
+      e.returnValue = "";
+    }
+  });
+
+  function normalise() {
+    if (!state.groups) state.groups = [];
+    if (!state.home || typeof state.home !== "object") state.home = {};
+    if (typeof state.home.eyebrow !== "string") state.home.eyebrow = "Wissenssammlung";
+    if (typeof state.home.title !== "string") state.home.title = "Themengebiete";
+    if (typeof state.home.intro !== "string") state.home.intro = "";
+    state.groups.forEach(function (g) {
+      if (!g.topics) g.topics = [];
+      g.topics.forEach(function (t) {
+        if (typeof t.html !== "string") t.html = "";
+        delete t.body;
+      });
+    });
+  }
+
+  normalise();
+  applyAccent();
+  render();
+
+  /* Der Verbindungsstand oben ist zugleich der Knopf dafür */
+  statusEl.setAttribute("role", "button");
+  statusEl.setAttribute("tabindex", "0");
+  statusEl.title = "Verbindung zum Speicher";
+  statusEl.style.cursor = "pointer";
+  statusEl.addEventListener("click", function () {
+    askServer(!cfgOk(cfg));
+  });
+  statusEl.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      askServer(!cfgOk(cfg));
+    }
+  });
+
+  /* Ein noch nicht gesicherter Stand von diesem Gerät hat Vorrang vor dem,
+     was der Server liefert — sonst wäre er nach einem Abbruch verloren. */
+  function offenerStand() {
+    try {
+      return localStorage.getItem("tg-pending");
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function laden() {
+    if (!cfgOk(cfg)) {
+      goReadOnly();
+      statusText.textContent = "Nicht verbunden";
+      askServer(true);
+      return;
+    }
+    readOnly = false;
+    saveBtn.disabled = true;
+    statusText.textContent = "Lade …";
+    serverFetch("GET")
+      .then(function (r) {
+        return r.text();
+      })
+      .then(function (txt) {
+        if (txt && txt.trim()) {
+          var p = JSON.parse(txt);
+          if (p && p.groups) state = p;
+        }
+        normalise();
+        var offen = offenerStand();
+        var zurueck = false;
+        if (offen && offen !== JSON.stringify(state)) {
+          try {
+            var q = JSON.parse(offen);
+            if (q && q.groups) {
+              state = q;
+              normalise();
+              zurueck = true;
+            }
+          } catch (e) {}
+        } else {
+          try {
+            localStorage.removeItem("tg-pending");
+          } catch (e) {}
+        }
+        history.length = 0;
+        redoStack.length = 0;
+        dirty = false;
+        statusEl.classList.remove("dirty");
+        applyAccent();
+        render();
+        if (zurueck) {
+          markDirty();
+          toast("Eine Änderung von diesem Gerät war noch nicht gesichert — sie ist wieder da. Bitte nochmal sichern.");
+        } else {
+          statusText.textContent = "Gesichert";
+        }
+      })
+      .catch(function (err) {
+        goReadOnly();
+        if (String(err && err.message) === "passwort") {
+          statusText.textContent = "Passwort falsch";
+          toast("Das Passwort stimmt nicht. Tippe oben auf den Stand, um es zu ändern.");
+        } else {
+          statusText.textContent = "Kein Zugriff";
+          toast("Der Speicher ist nicht erreichbar. Tippe oben auf den Stand, um die Verbindung zu prüfen.");
+        }
+      });
+  }
+
+  laden();
+
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("sw.js").catch(function () {});
+  }
+})();
+</script>
+
+</body>
+</html>
