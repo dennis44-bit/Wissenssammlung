@@ -477,6 +477,24 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
 .toc ol button:hover{background:var(--accent-soft); color:var(--accent-ink)}
 .toc li.sub button{padding-left:24px; font-size:13.5px; color:var(--muted)}
 .toc li.grp > .row{display:flex; align-items:center; gap:2px}
+.toc .jump[draggable="true"]{cursor:grab}
+.toc .jump[draggable="true"]:active{cursor:grabbing}
+.toc .jump.dragging{opacity:.4}
+.toc .jump.drop-before{box-shadow:inset 0 2px 0 var(--accent)}
+.toc .jump.drop-after{box-shadow:inset 0 -2px 0 var(--accent)}
+.toc .ord{
+  flex:none; display:flex; gap:1px; margin-left:4px;
+}
+.toc .ord button{
+  width:20px; height:20px; padding:0; margin:0; border:none; border-radius:4px;
+  background:transparent; color:var(--muted); cursor:pointer;
+  font-size:10px; line-height:1; display:flex; align-items:center; justify-content:center;
+}
+.toc .ord button:hover{background:var(--surface-2); color:var(--ink)}
+.toc .ord button:disabled{opacity:.25; cursor:default}
+.toc .ord button:disabled:hover{background:transparent; color:var(--muted)}
+.toc li.sub > .row{display:flex; align-items:center; gap:2px}
+.toc li.sub > .row > .jump{flex:1; min-width:0}
 .toc li.grp > .row > button.jump{flex:1; min-width:0; margin-left:0}
 .toc .sub-toggle{
   flex:none; width:20px; height:22px; padding:0; margin:0; border:none;
@@ -1860,7 +1878,8 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
     }, 2400);
   }
 
-  function buildToc(root, onPick) {
+  function buildToc(root, onPick, onMove, kannVerschieben) {
+    var ziehId = null;
     var collapsed = false;
     try {
       collapsed = localStorage.getItem("tg-toc") === "0";
@@ -1919,11 +1938,86 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
           onPick(h);
         });
 
+        /* Im Bearbeiten-Modus lässt sich die Reihenfolge ändern — der ganze
+           Abschnitt unter der Überschrift wandert dabei mit. */
+        var ordnung = null;
+        if (onMove) {
+          jump.draggable = true;
+          jump.title = "Ziehen, um den Abschnitt zu verschieben";
+          jump.addEventListener("dragstart", function (e) {
+            ziehId = h;
+            jump.classList.add("dragging");
+            try {
+              e.dataTransfer.effectAllowed = "move";
+              e.dataTransfer.setData("text/plain", h.id || "abschnitt");
+            } catch (err) {}
+          });
+          jump.addEventListener("dragend", function () {
+            ziehId = null;
+            jump.classList.remove("dragging");
+            tocMarkenWeg();
+          });
+          jump.addEventListener("dragover", function (e) {
+            if (!ziehId || ziehId === h) return;
+            e.preventDefault();
+            e.stopPropagation();
+            var r = jump.getBoundingClientRect();
+            var unten = e.clientY - r.top > r.height / 2;
+            tocMarkenWeg();
+            jump.classList.add(unten ? "drop-after" : "drop-before");
+          });
+          jump.addEventListener("drop", function (e) {
+            if (!ziehId) return;
+            e.preventDefault();
+            e.stopPropagation();
+            var r = jump.getBoundingClientRect();
+            var unten = e.clientY - r.top > r.height / 2;
+            var q = ziehId;
+            ziehId = null;
+            tocMarkenWeg();
+            onMove(q, h, unten);
+          });
+
+          ordnung = document.createElement("span");
+          ordnung.className = "ord";
+          [["↑", -1, "Abschnitt nach oben"], ["↓", 1, "Abschnitt nach unten"]]
+            .forEach(function (f) {
+              var b = document.createElement("button");
+              b.type = "button";
+              b.textContent = f[0];
+              b.title = f[2];
+              b.setAttribute("aria-label", f[2]);
+              b.addEventListener("mousedown", function (e) {
+                e.preventDefault();
+              });
+              b.addEventListener("click", function () {
+                onMove(h, null, f[1]);
+              });
+              if (kannVerschieben) b.disabled = !kannVerschieben(h, f[1]);
+              ordnung.appendChild(b);
+            });
+        }
+
+        function tocMarkenWeg() {
+          [].slice.call(list.querySelectorAll(".drop-before, .drop-after"))
+            .forEach(function (el) {
+              el.classList.remove("drop-before", "drop-after");
+            });
+        }
+
         /* Unterpunkte hängen unter dem Hauptpunkt darüber */
         if (h.tagName === "H4" && offeneGruppe) {
           var subLi = document.createElement("li");
           subLi.className = "sub";
-          subLi.appendChild(jump);
+          if (ordnung) {
+            var subRow = document.createElement("div");
+            subRow.className = "row";
+            subRow.appendChild(jump);
+            subRow.appendChild(ordnung);
+            subLi.appendChild(subRow);
+          } else {
+            subLi.appendChild(jump);
+          }
           offeneGruppe.subs.appendChild(subLi);
           return;
         }
@@ -1942,6 +2036,7 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
         subs.className = "toc-subs";
         row.appendChild(tog);
         row.appendChild(jump);
+        if (ordnung) row.appendChild(ordnung);
         li.appendChild(row);
         li.appendChild(subs);
         list.appendChild(li);
@@ -2527,6 +2622,66 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
 
     /* Gliederung auch beim Schreiben: ein Klick springt zur Überschrift und
        setzt den Cursor hinein, damit sie sich gleich ändern lässt. */
+    /* Alles, was unter einer Überschrift steht, bis zur nächsten gleichrangigen —
+       das ist der Abschnitt, der beim Verschieben mitwandert. */
+    function abschnitt(h) {
+      var stopp = h.tagName === "H3" ? /^H3$/ : /^(H3|H4)$/;
+      var teile = [h];
+      var k = h.nextSibling;
+      while (k) {
+        if (k.nodeType === 1 && stopp.test(k.tagName)) break;
+        teile.push(k);
+        k = k.nextSibling;
+      }
+      return teile;
+    }
+
+    function alleUeberschriften() {
+      return [].slice.call(box.querySelectorAll("h3, h4"));
+    }
+
+    /* ↑/↓: Hauptpunkte springen über ganze Hauptabschnitte, Unterpunkte
+       einen Platz weiter. */
+    function nachbar(h, richtung) {
+      var hs = alleUeberschriften();
+      var i = hs.indexOf(h);
+      if (i < 0) return null;
+      if (h.tagName === "H3") {
+        for (var j = i + richtung; j >= 0 && j < hs.length; j += richtung) {
+          if (hs[j].tagName === "H3") return hs[j];
+        }
+        return null;
+      }
+      var k = i + richtung;
+      return k >= 0 && k < hs.length ? hs[k] : null;
+    }
+
+    function verschiebeAbschnitt(h, ziel, dahinter) {
+      if (ziel === null) {
+        /* über die Pfeilknöpfe: Nachbarn suchen, dahinter = Richtung */
+        var richtung = dahinter;
+        ziel = nachbar(h, richtung);
+        if (!ziel) return;
+        dahinter = richtung > 0;
+      }
+      var teile = abschnitt(h);
+      if (teile.indexOf(ziel) >= 0) return;
+      var zielTeile = abschnitt(ziel);
+      var anker = dahinter ? zielTeile[zielTeile.length - 1].nextSibling : ziel;
+      var eltern = box;
+      teile.forEach(function (k) {
+        eltern.insertBefore(k, anker);
+      });
+      changed("cmd");
+      try {
+        box.focus({ preventScroll: true });
+      } catch (e) {
+        box.focus();
+      }
+      h.scrollIntoView({ block: "center", behavior: "auto" });
+      flashHeading(h);
+    }
+
     toc = buildToc(box, function (h) {
       h.scrollIntoView({ block: "center", behavior: "auto" });
       flashHeading(h);
@@ -2543,6 +2698,8 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
       sel.addRange(r);
       remember();
       syncTools();
+    }, verschiebeAbschnitt, function (h, richtung) {
+      return !!nachbar(h, richtung);
     });
     toc.refresh();
 
