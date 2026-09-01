@@ -1066,6 +1066,9 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
           '" value="' +
           esc(f.value || "") +
           '" ' +
+          /* sonst macht die iPhone-Tastatur aus https:// ein Https:// */
+          'autocapitalize="none" autocorrect="off" spellcheck="false" ' +
+          (f.mode ? 'inputmode="' + esc(f.mode) + '" ' : "") +
           (f.placeholder ? 'placeholder="' + esc(f.placeholder) + '"' : "") +
           "></div>"
         );
@@ -2848,7 +2851,17 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
   } catch (e) {}
 
   function cfgOk(c) {
-    return !!(c && typeof c.url === "string" && /^https?:\/\//.test(c.url) && c.token);
+    return !!(c && typeof c.url === "string" && /^https?:\/\//i.test(c.url) && c.token);
+  }
+
+  /* Leerzeichen und Groß-/Kleinschreibung beim Eintippen am Handy abfangen */
+  function saubereAdresse(v) {
+    var u = String(v || "").replace(/\s+/g, "").replace(/\/+$/, "");
+    if (/^https?:\/\//i.test(u)) return u.replace(/^https?:/i, function (m) {
+      return m.toLowerCase();
+    });
+    if (u) return "https://" + u;
+    return u;
   }
 
   function serverFetch(method, body) {
@@ -2872,13 +2885,13 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
       text: "Adresse deines Speichers und das Passwort, das du dort gesetzt hast.",
       fields: [
         { key: "url", label: "Adresse", value: (cfg && cfg.url) || "",
-          placeholder: "https://…workers.dev", required: true },
+          placeholder: "https://…workers.dev", mode: "url", required: true },
         { key: "token", label: "Passwort", value: (cfg && cfg.token) || "", required: true }
       ],
       stack: true,
       confirm: "Verbinden",
       onOk: function (v) {
-        cfg = { url: v.url, token: v.token };
+        cfg = { url: saubereAdresse(v.url), token: v.token };
         try {
           localStorage.setItem(CFG_KEY, JSON.stringify(cfg));
         } catch (e) {}
