@@ -1,6 +1,6 @@
 /* Hält die App-Dateien offline vor. Die Notizen selbst liegen auf dem
    Speicher-Server und werden hier bewusst NICHT zwischengespeichert. */
-var CACHE = "themengebiete-v1";
+var CACHE = "themengebiete-v2";
 var DATEIEN = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg"];
 
 self.addEventListener("install", function (e) {
