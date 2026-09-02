@@ -1807,8 +1807,17 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
     if (!all.length) {
       var blank = document.createElement("div");
       blank.className = "home-blank";
-      blank.textContent =
-        "Noch keine Themen angelegt. Leg ein Überthema an und darin dein erstes Thema.";
+      if (readOnly) {
+        /* Nicht verwechseln: leer heißt hier "nicht geladen", nicht "nichts da". */
+        blank.innerHTML =
+          "<b>Keine Verbindung zum Speicher.</b><br>" +
+          "Deine Notizen sind nicht geladen — sie liegen unberührt auf dem Server. " +
+          "Tippe oben auf den Verbindungsstand, um Adresse und Passwort zu prüfen. " +
+          "Am einfachsten beides einfügen statt eintippen.";
+      } else {
+        blank.textContent =
+          "Noch keine Themen angelegt. Leg ein Überthema an und darin dein erstes Thema.";
+      }
       sheetEl.appendChild(blank);
       return;
     }
@@ -3315,6 +3324,9 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
       })
       .catch(function (err) {
         goReadOnly();
+        /* neu zeichnen, sonst steht dort weiter "noch keine Themen angelegt",
+           obwohl in Wahrheit nur die Verbindung fehlt */
+        render();
         if (String(err && err.message) === "passwort") {
           statusText.textContent = "Passwort falsch";
           toast("Das Passwort stimmt nicht. Tippe oben auf den Stand, um es zu ändern.");
