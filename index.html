@@ -1953,7 +1953,11 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
             [].slice.call(list.querySelectorAll(".jump")).forEach(function (b) {
               b.setAttribute("aria-selected", b === jump ? "true" : "false");
             });
-            jump.focus();
+            try {
+              jump.focus({ preventScroll: true });
+            } catch (err) {
+              jump.focus();
+            }
           }
           onPick(h, !onMove);
         });
@@ -2144,7 +2148,13 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
         var wieder = [].slice.call(list.querySelectorAll(".jump")).filter(function (b) {
           return b.__kopf === markiert;
         })[0];
-        if (wieder) wieder.focus();
+        if (wieder) {
+          try {
+            wieder.focus({ preventScroll: true });
+          } catch (e) {
+            wieder.focus();
+          }
+        }
       }
       return heads.length;
     }
@@ -2753,18 +2763,21 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
         eltern.insertBefore(k, anker);
       });
       changed("cmd");
-      /* Kein box.focus() hier — die Markierung in der Gliederung muss den
-         Tastaturfokus behalten, damit die nächste Pfeiltaste weiterwirkt. */
-      h.scrollIntoView({ block: "center", behavior: "auto" });
+      /* Weder Fokus noch Ansicht verschieben: die Gliederung bleibt stehen,
+         damit man mehrere Abschnitte hintereinander sortieren kann. */
       flashHeading(h);
     }
 
     toc = buildToc(box, function (h, cursorRein) {
+      /* Einfaches Antippen markiert nur — die Ansicht bleibt stehen, damit man
+         mehrere Abschnitte hintereinander sortieren kann. Doppelklick springt
+         hin und setzt den Cursor in die Überschrift. */
+      if (!cursorRein) {
+        flashHeading(h);
+        return;
+      }
       h.scrollIntoView({ block: "center", behavior: "auto" });
       flashHeading(h);
-      /* Beim einfachen Antippen bleibt die Markierung in der Gliederung, damit
-         die Pfeiltasten dort wirken. Doppelklick setzt den Cursor in den Text. */
-      if (!cursorRein) return;
       var r = document.createRange();
       r.selectNodeContents(h);
       r.collapse(false);
