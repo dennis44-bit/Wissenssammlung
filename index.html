@@ -3328,7 +3328,29 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
   laden();
 
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("sw.js").catch(function () {});
+    /* updateViaCache:"none" — sonst holt der Browser auch diese Datei aus
+       seinem 10-Minuten-Zwischenspeicher und merkt Änderungen zu spät. */
+    var hatteController = !!navigator.serviceWorker.controller;
+    var schonNeu = false;
+    /* Doppelte Sicherung gegen eine Neulade-Schleife: höchstens einmal je Sitzung */
+    try {
+      if (sessionStorage.getItem("tg-neugeladen")) schonNeu = true;
+    } catch (e) {}
+    navigator.serviceWorker.addEventListener("controllerchange", function () {
+      /* Neue Fassung hat übernommen: einmal frisch laden, damit sie auch greift */
+      if (!hatteController || schonNeu) return;
+      schonNeu = true;
+      try {
+        sessionStorage.setItem("tg-neugeladen", "1");
+      } catch (e) {}
+      location.reload();
+    });
+    try {
+      navigator.serviceWorker.register("sw.js", { updateViaCache: "none" })
+        .catch(function () {});
+    } catch (e) {
+      navigator.serviceWorker.register("sw.js").catch(function () {});
+    }
   }
 })();
 </script>
