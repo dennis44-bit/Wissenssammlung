@@ -2352,43 +2352,95 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
 
     /* Block commands replace the caret's text node, so a node reference is useless.
        Measure the caret as a character offset into the whole text instead. */
-    function caretOffset() {
+    /* Anfang UND Ende der Auswahl merken, nicht nur den Cursor — sonst ist
+       nach "Fett" die Markierung weg und man kann nicht gleich noch
+       "Aufzählung" draufsetzen. */
+    function selOffsets() {
       var s = window.getSelection();
       if (!s || !s.rangeCount || !box.contains(s.anchorNode)) return null;
       var live = s.getRangeAt(0);
-      var r = document.createRange();
-      r.selectNodeContents(box);
       try {
-        r.setEnd(live.endContainer, live.endOffset);
+        var a = document.createRange();
+        a.selectNodeContents(box);
+        a.setEnd(live.startContainer, live.startOffset);
+        var b = document.createRange();
+        b.selectNodeContents(box);
+        b.setEnd(live.endContainer, live.endOffset);
+        return { start: a.toString().length, end: b.toString().length };
       } catch (e) {
         return null;
       }
-      return r.toString().length;
+    }
+
+    function stelleZu(off) {
+      var walker = document.createTreeWalker(box, NodeFilter.SHOW_TEXT, null);
+      var n;
+      var acc = 0;
+      while ((n = walker.nextNode())) {
+        var len = n.nodeValue.length;
+        if (acc + len >= off) return { node: n, offset: off - acc };
+        acc += len;
+      }
+      return null;
+    }
+
+    function setSel(o) {
+      if (!o) return;
+      var s = window.getSelection();
+      var a = stelleZu(o.start);
+      var b = stelleZu(o.end);
+      var r = document.createRange();
+      if (a && b) {
+        r.setStart(a.node, a.offset);
+        try {
+          r.setEnd(b.node, b.offset);
+        } catch (e) {
+          r.collapse(true);
+        }
+      } else {
+        r.selectNodeContents(box);
+        r.collapse(false);
+      }
+      s.removeAllRanges();
+      s.addRange(r);
     }
 
     function setCaret(off) {
       if (off === null) return;
-      var walker = document.createTreeWalker(box, NodeFilter.SHOW_TEXT, null);
-      var n;
-      var acc = 0;
+      setSel({ start: off, end: off });
+    }
+
+    function caretAnsEnde(el) {
+      var r = document.createRange();
+      r.selectNodeContents(el);
+      r.collapse(false);
       var s = window.getSelection();
-      while ((n = walker.nextNode())) {
-        var len = n.nodeValue.length;
-        if (acc + len >= off) {
-          var r = document.createRange();
-          r.setStart(n, off - acc);
-          r.collapse(true);
-          s.removeAllRanges();
-          s.addRange(r);
-          return;
-        }
-        acc += len;
-      }
-      var end = document.createRange();
-      end.selectNodeContents(box);
-      end.collapse(false);
       s.removeAllRanges();
-      s.addRange(end);
+      s.addRange(r);
+    }
+
+    /* der Block, in dem der Cursor gerade steht */
+    function blockVon(node) {
+      var el = node && node.nodeType === 1 ? node : node && node.parentElement;
+      while (el && el !== box) {
+        if (/^(P|H3|H4|H5|LI|TD|TH)$/.test(el.tagName)) return el;
+        el = el.parentElement;
+      }
+      return null;
+    }
+
+    function amBlockAnfang(blk) {
+      var s = window.getSelection();
+      if (!s || !s.rangeCount) return false;
+      var live = s.getRangeAt(0);
+      try {
+        var vor = document.createRange();
+        vor.selectNodeContents(blk);
+        vor.setEnd(live.startContainer, live.startOffset);
+        return vor.toString().length === 0;
+      } catch (e) {
+        return false;
+      }
     }
 
     /* Chrome's list command wraps the new <ul> inside the old <p>, which is
@@ -2404,12 +2456,13 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
 
     function run(fn, keepCaret) {
       restore();
-      var off = keepCaret === false ? null : caretOffset();
+      var off = keepCaret === false ? null : selOffsets();
       inRun = true;
       try {
-        fn();
+        /* Gibt fn "eigenerCursor" zurück, hat es die Stelle selbst gesetzt */
+        var eigen = fn();
         normalizeDom();
-        setCaret(off);
+        if (eigen !== "eigenerCursor") setSel(off);
         remember();
       } finally {
         inRun = false;
@@ -2418,6 +2471,43 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
     }
 
     /* a list item or table may not live inside a heading — drop the heading first */
+    /* Aufzählungspunkt auflösen: aus dem Listeneintrag wird ein normaler Absatz
+       an genau derselben Stelle — ohne Einrückung, ohne Sprung an den Anfang. */
+    function listeAufloesen() {
+      var li = selectionIn(box, /^LI$/);
+      if (!li) return false;
+      var liste = li.parentElement;
+      if (!liste || !/^(UL|OL)$/.test(liste.tagName)) return false;
+      /* verschachtelte Listen überlassen wir dem Browser */
+      if (liste.parentElement !== box) return false;
+
+      var absatz = document.createElement("p");
+      while (li.firstChild) absatz.appendChild(li.firstChild);
+      if (!absatz.firstChild) absatz.appendChild(document.createElement("br"));
+
+      var danach = [];
+      var k = li.nextElementSibling;
+      while (k) {
+        danach.push(k);
+        k = k.nextElementSibling;
+      }
+
+      liste.parentNode.insertBefore(absatz, liste.nextSibling);
+      li.remove();
+
+      if (danach.length) {
+        var rest = document.createElement(liste.tagName.toLowerCase());
+        danach.forEach(function (x) {
+          rest.appendChild(x);
+        });
+        absatz.parentNode.insertBefore(rest, absatz.nextSibling);
+      }
+      if (!liste.children.length) liste.remove();
+
+      caretAnsEnde(absatz);
+      return true;
+    }
+
     function unheading() {
       if (selectionIn(box, /^(H3|H4|H5)$/)) cmd("formatBlock", "p");
     }
@@ -2526,6 +2616,7 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
     });
     sep();
     tool("•", "Aufzählung mit Punkten", function () {
+      if (selectionIn(box, /^UL$/) && listeAufloesen()) return "eigenerCursor";
       unheading();
       cmd("insertUnorderedList");
     }, function () {
@@ -2533,6 +2624,7 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
       return !!l && l.tagName === "UL";
     });
     tool("1.", "Nummerierte Aufzählung", function () {
+      if (selectionIn(box, /^OL$/) && listeAufloesen()) return "eigenerCursor";
       unheading();
       cmd("insertOrderedList");
     }, function () {
@@ -2664,6 +2756,33 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
           });
         }
         return;
+      }
+
+      if (e.key === "Backspace") {
+        var sel0 = window.getSelection();
+        if (sel0 && sel0.isCollapsed && sel0.rangeCount) {
+          var blk = blockVon(sel0.anchorNode);
+          if (blk && /^(P|H3|H4|H5)$/.test(blk.tagName) && amBlockAnfang(blk)) {
+            var vorher = blk.previousElementSibling;
+            var leer = !blk.textContent.trim() && !blk.querySelector("img, hr, table");
+            if (leer && vorher) {
+              /* Leerzeile einfach entfernen, statt sie in den Block davor
+                 einzuschmelzen — sonst landet der Text in der Überschrift. */
+              e.preventDefault();
+              run(function () {
+                blk.remove();
+                caretAnsEnde(vorher);
+                return "eigenerCursor";
+              }, false);
+              return;
+            }
+            if (!leer && vorher && /^H[345]$/.test(vorher.tagName)) {
+              /* Text nicht in die Überschrift darüber ziehen */
+              e.preventDefault();
+              return;
+            }
+          }
+        }
       }
 
       if (mod && e.key.toLowerCase() === "b") {
