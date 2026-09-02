@@ -2223,8 +2223,47 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
       while (p.firstChild) par.insertBefore(p.firstChild, p);
       p.remove();
     });
+    /* auch beim Sichern: freistehender Text wird zu Absätzen */
+    absaetzeInContainer(box);
     box.innerHTML = box.innerHTML.replace(/<p>\s*(<br>)?\s*<\/p>/g, "");
     return box.innerHTML.trim();
+  }
+
+  /* Text, der frei zwischen Blöcken hängt, in Absätze fassen */
+  function absaetzeInContainer(root) {
+    var blockTag = /^(P|H3|H4|H5|UL|OL|TABLE|HR)$/;
+    var lauf = [];
+    function abschliessen() {
+      if (!lauf.length) return;
+      var nurLeer = lauf.every(function (k) {
+        return k.nodeType === 3 ? !k.nodeValue.trim() : false;
+      });
+      if (nurLeer) {
+        lauf.forEach(function (k) {
+          if (k.parentNode) k.remove();
+        });
+      } else {
+        var abs = document.createElement("p");
+        root.insertBefore(abs, lauf[0]);
+        lauf.forEach(function (k) {
+          abs.appendChild(k);
+        });
+      }
+      lauf = [];
+    }
+    [].slice.call(root.childNodes).forEach(function (k) {
+      if (k.nodeType === 1 && blockTag.test(k.tagName)) {
+        abschliessen();
+        return;
+      }
+      if (k.nodeType === 1 && k.tagName === "BR") {
+        abschliessen();
+        k.remove();
+        return;
+      }
+      lauf.push(k);
+    });
+    abschliessen();
   }
 
   function isEmptyHtml(html) {
@@ -2446,6 +2485,7 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
     /* Chrome's list command wraps the new <ul> inside the old <p>, which is
        invalid and breaks every later edit — flatten it right away. */
     function normalizeDom() {
+      absaetzeInContainer(box);
       [].slice.call(box.querySelectorAll("p, h3, h4, h5")).forEach(function (el) {
         if (!el.parentNode || !el.querySelector("ul, ol, table, hr, h3, h4, h5, p")) return;
         var par = el.parentNode;
@@ -2728,8 +2768,10 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
     box.addEventListener("paste", function (e) {
       e.preventDefault();
       var text = (e.clipboardData || window.clipboardData).getData("text/plain");
-      cmd("insertText", text);
-      changed("cmd");
+      /* über run(), damit der eingefügte Text gleich in Absätze gefasst wird */
+      run(function () {
+        cmd("insertText", text);
+      });
     });
 
     box.addEventListener("keydown", function (e) {
@@ -2787,8 +2829,9 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
               }, false);
               return;
             }
-            if (!leer && vorher && /^H[345]$/.test(vorher.tagName)) {
-              /* Text nicht in die Überschrift darüber ziehen */
+            if (!leer && vorher && /^(H3|H4|H5|UL|OL)$/.test(vorher.tagName)) {
+              /* Text weder in die Überschrift noch in den Aufzählungspunkt
+                 darüber ziehen — beides zerreißt die Gliederung. */
               e.preventDefault();
               return;
             }
