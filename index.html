@@ -2394,33 +2394,57 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
     /* Anfang UND Ende der Auswahl merken, nicht nur den Cursor — sonst ist
        nach "Fett" die Markierung weg und man kann nicht gleich noch
        "Aufzählung" draufsetzen. */
-    function selOffsets() {
-      var s = window.getSelection();
-      if (!s || !s.rangeCount || !box.contains(s.anchorNode)) return null;
-      var live = s.getRangeAt(0);
+    /* Die Position wird je Block gemerkt (welcher Block, wie viele Zeichen
+       darin). Eine reine Gesamtzahl wäre am Blockanfang nicht von "Ende des
+       Blocks davor" zu unterscheiden — genau daher kam das Springen nach oben. */
+    /* Als Block zählt die kleinste Einheit, in der Text steht — ein Absatz,
+       eine Überschrift, ein einzelner Aufzählungspunkt, eine Tabellenzelle.
+       Die ganze Liste als Einheit zu nehmen wäre zu grob: der Cursor landete
+       sonst am Ende des ersten Punktes statt am Anfang des zweiten. */
+    var BLOCKWAHL = "p, h3, h4, h5, li, td, th";
+
+    function blattBloecke() {
+      return [].slice.call(box.querySelectorAll(BLOCKWAHL));
+    }
+
+    function stelleMerken(container, offset) {
+      var el = container && container.nodeType === 1 ? container : container && container.parentElement;
+      var blk = el && el.closest ? el.closest(BLOCKWAHL) : null;
+      if (!blk || !box.contains(blk)) return null;
       try {
-        var a = document.createRange();
-        a.selectNodeContents(box);
-        a.setEnd(live.startContainer, live.startOffset);
-        var b = document.createRange();
-        b.selectNodeContents(box);
-        b.setEnd(live.endContainer, live.endOffset);
-        return { start: a.toString().length, end: b.toString().length };
+        var r = document.createRange();
+        r.selectNodeContents(blk);
+        r.setEnd(container, offset);
+        return { block: blattBloecke().indexOf(blk), off: r.toString().length };
       } catch (e) {
         return null;
       }
     }
 
-    function stelleZu(off) {
-      var walker = document.createTreeWalker(box, NodeFilter.SHOW_TEXT, null);
+    function selOffsets() {
+      var s = window.getSelection();
+      if (!s || !s.rangeCount || !box.contains(s.anchorNode)) return null;
+      var live = s.getRangeAt(0);
+      var a = stelleMerken(live.startContainer, live.startOffset);
+      var b = stelleMerken(live.endContainer, live.endOffset);
+      if (!a || !b) return null;
+      return { start: a, end: b };
+    }
+
+    function stelleZu(pos) {
+      if (!pos || pos.block < 0) return null;
+      var blk = blattBloecke()[pos.block];
+      if (!blk) return null;
+      var walker = document.createTreeWalker(blk, NodeFilter.SHOW_TEXT, null);
       var n;
       var acc = 0;
       while ((n = walker.nextNode())) {
         var len = n.nodeValue.length;
-        if (acc + len >= off) return { node: n, offset: off - acc };
+        if (acc + len >= pos.off) return { node: n, offset: pos.off - acc };
         acc += len;
       }
-      return null;
+      /* Block ohne Text, etwa eine leere Zeile */
+      return { node: blk, offset: 0 };
     }
 
     function setSel(o) {
@@ -2430,11 +2454,12 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
       var b = stelleZu(o.end);
       var r = document.createRange();
       if (a && b) {
-        r.setStart(a.node, a.offset);
         try {
+          r.setStart(a.node, a.offset);
           r.setEnd(b.node, b.offset);
         } catch (e) {
-          r.collapse(true);
+          r.selectNodeContents(box);
+          r.collapse(false);
         }
       } else {
         r.selectNodeContents(box);
@@ -2444,10 +2469,7 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
       s.addRange(r);
     }
 
-    function setCaret(off) {
-      if (off === null) return;
-      setSel({ start: off, end: off });
-    }
+
 
     function caretAnsEnde(el) {
       var r = document.createRange();
@@ -3001,7 +3023,7 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
         } catch (e) {
           box.focus();
         }
-        setCaret(box.textContent.length);
+        caretAnsEnde(box);
         remember();
         if (toc) toc.refresh();
         syncTools();
