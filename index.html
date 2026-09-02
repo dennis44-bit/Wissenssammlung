@@ -486,10 +486,19 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
   flex:none; display:flex; gap:1px; margin-left:4px;
 }
 .toc .ord button{
-  width:20px; height:20px; padding:0; margin:0; border:none; border-radius:4px;
+  width:28px; height:28px; padding:0; margin:0; border:none; border-radius:5px;
   background:transparent; color:var(--muted); cursor:pointer;
-  font-size:10px; line-height:1; display:flex; align-items:center; justify-content:center;
+  font-size:12px; line-height:1; display:flex; align-items:center; justify-content:center;
 }
+.toc .grip{
+  touch-action:none; cursor:grab; font-size:13px; letter-spacing:-1px;
+  color:var(--line-2);
+}
+.toc .grip:active{cursor:grabbing}
+.toc .jump[aria-selected="true"]{
+  background:var(--accent-soft); color:var(--accent-ink); font-weight:500;
+}
+.toc .jump.dragging{opacity:.4}
 .toc .ord button:hover{background:var(--surface-2); color:var(--ink)}
 .toc .ord button:disabled{opacity:.25; cursor:default}
 .toc .ord button:disabled:hover{background:transparent; color:var(--muted)}
@@ -1879,7 +1888,7 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
   }
 
   function buildToc(root, onPick, onMove, kannVerschieben) {
-    var ziehId = null;
+    var markiert = null;
     var collapsed = false;
     try {
       collapsed = localStorage.getItem("tg-toc") === "0";
@@ -1921,6 +1930,9 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
       var heads = [].slice.call(root.querySelectorAll("h3, h4"));
       box.hidden = heads.length < 2;
       label.innerHTML = "<b>Gliederung</b> · " + heads.length + " Abschnitte";
+      /* Nach einem Verschieben wird die Liste neu gebaut — die Markierung muss
+         den Tastaturfokus behalten, sonst wirkt die nächste Pfeiltaste nicht. */
+      var warFokus = list.contains(document.activeElement);
       list.innerHTML = "";
 
       var offeneGruppe = null;
@@ -1930,56 +1942,43 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
         jump.type = "button";
         jump.className = "jump";
         jump.textContent = h.textContent.trim() || "(ohne Überschrift)";
+        jump.setAttribute("aria-selected", h === markiert ? "true" : "false");
         /* nicht den Cursor aus dem Text holen, bevor der Sprung passiert */
         jump.addEventListener("mousedown", function (e) {
           e.preventDefault();
         });
         jump.addEventListener("click", function () {
-          onPick(h);
+          if (onMove) {
+            markiert = h;
+            [].slice.call(list.querySelectorAll(".jump")).forEach(function (b) {
+              b.setAttribute("aria-selected", b === jump ? "true" : "false");
+            });
+            jump.focus();
+          }
+          onPick(h, !onMove);
+        });
+        /* markiert: mit den Pfeiltasten verschieben */
+        jump.addEventListener("dblclick", function () {
+          onPick(h, true);
+        });
+        jump.addEventListener("keydown", function (e) {
+          if (!onMove) return;
+          if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+            e.preventDefault();
+            onMove(h, null, e.key === "ArrowUp" ? -1 : 1);
+          } else if (e.key === "Enter") {
+            e.preventDefault();
+            onPick(h, true);
+          }
         });
 
         /* Im Bearbeiten-Modus lässt sich die Reihenfolge ändern — der ganze
            Abschnitt unter der Überschrift wandert dabei mit. */
-        var ordnung = null;
+        var werkzeuge = null;
         if (onMove) {
-          jump.draggable = true;
-          jump.title = "Ziehen, um den Abschnitt zu verschieben";
-          jump.addEventListener("dragstart", function (e) {
-            ziehId = h;
-            jump.classList.add("dragging");
-            try {
-              e.dataTransfer.effectAllowed = "move";
-              e.dataTransfer.setData("text/plain", h.id || "abschnitt");
-            } catch (err) {}
-          });
-          jump.addEventListener("dragend", function () {
-            ziehId = null;
-            jump.classList.remove("dragging");
-            tocMarkenWeg();
-          });
-          jump.addEventListener("dragover", function (e) {
-            if (!ziehId || ziehId === h) return;
-            e.preventDefault();
-            e.stopPropagation();
-            var r = jump.getBoundingClientRect();
-            var unten = e.clientY - r.top > r.height / 2;
-            tocMarkenWeg();
-            jump.classList.add(unten ? "drop-after" : "drop-before");
-          });
-          jump.addEventListener("drop", function (e) {
-            if (!ziehId) return;
-            e.preventDefault();
-            e.stopPropagation();
-            var r = jump.getBoundingClientRect();
-            var unten = e.clientY - r.top > r.height / 2;
-            var q = ziehId;
-            ziehId = null;
-            tocMarkenWeg();
-            onMove(q, h, unten);
-          });
+          werkzeuge = document.createElement("span");
+          werkzeuge.className = "ord";
 
-          ordnung = document.createElement("span");
-          ordnung.className = "ord";
           [["↑", -1, "Abschnitt nach oben"], ["↓", 1, "Abschnitt nach unten"]]
             .forEach(function (f) {
               var b = document.createElement("button");
@@ -1994,26 +1993,100 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
                 onMove(h, null, f[1]);
               });
               if (kannVerschieben) b.disabled = !kannVerschieben(h, f[1]);
-              ordnung.appendChild(b);
+              werkzeuge.appendChild(b);
             });
-        }
 
-        function tocMarkenWeg() {
-          [].slice.call(list.querySelectorAll(".drop-before, .drop-after"))
-            .forEach(function (el) {
-              el.classList.remove("drop-before", "drop-after");
-            });
+          /* Anfasser: funktioniert mit Maus UND Finger, weil er auf
+             Zeigereignisse hört statt auf das Datei-Ziehen des Browsers. */
+          var griff = document.createElement("button");
+          griff.type = "button";
+          griff.className = "grip";
+          griff.textContent = "⠿";
+          griff.title = "Zum Verschieben ziehen";
+          griff.setAttribute("aria-label", "Abschnitt verschieben");
+          werkzeuge.appendChild(griff);
+
+          griff.addEventListener("pointerdown", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var startY = e.clientY;
+            var laeuft = false;
+            var ziel = null;
+            var unten = false;
+            try {
+              griff.setPointerCapture(e.pointerId);
+            } catch (err) {}
+
+            function markenWeg() {
+              [].slice.call(list.querySelectorAll(".drop-before, .drop-after"))
+                .forEach(function (el) {
+                  el.classList.remove("drop-before", "drop-after");
+                });
+            }
+
+            /* Ziel aus der Geometrie bestimmen statt per Treffertest: so klappt
+               es auch, wenn der Finger über einem Knopf einer anderen Zeile liegt. */
+            function zielFuer(y) {
+              var eintraege = [].slice.call(list.querySelectorAll(".jump"));
+              var naechster = null;
+              var abstand = Infinity;
+              for (var i = 0; i < eintraege.length; i++) {
+                var b = eintraege[i];
+                if (b === jump) continue;
+                var r = b.getBoundingClientRect();
+                if (!r.height) continue;
+                if (y >= r.top && y <= r.bottom) {
+                  return { el: b, unten: y - r.top > r.height / 2 };
+                }
+                var d = y < r.top ? r.top - y : y - r.bottom;
+                if (d < abstand) {
+                  abstand = d;
+                  naechster = { el: b, unten: y > r.bottom };
+                }
+              }
+              return abstand < 40 ? naechster : null;
+            }
+
+            function bewegen(ev) {
+              if (!laeuft && Math.abs(ev.clientY - startY) < 5) return;
+              if (!laeuft) {
+                laeuft = true;
+                jump.classList.add("dragging");
+              }
+              markenWeg();
+              ziel = null;
+              var t = zielFuer(ev.clientY);
+              if (!t) return;
+              unten = t.unten;
+              t.el.classList.add(unten ? "drop-after" : "drop-before");
+              ziel = t.el;
+            }
+
+            function loslassen() {
+              griff.removeEventListener("pointermove", bewegen);
+              griff.removeEventListener("pointerup", loslassen);
+              griff.removeEventListener("pointercancel", loslassen);
+              jump.classList.remove("dragging");
+              markenWeg();
+              if (laeuft && ziel && ziel.__kopf) onMove(h, ziel.__kopf, unten);
+            }
+
+            griff.addEventListener("pointermove", bewegen);
+            griff.addEventListener("pointerup", loslassen);
+            griff.addEventListener("pointercancel", loslassen);
+          });
         }
+        jump.__kopf = h;
 
         /* Unterpunkte hängen unter dem Hauptpunkt darüber */
         if (h.tagName === "H4" && offeneGruppe) {
           var subLi = document.createElement("li");
           subLi.className = "sub";
-          if (ordnung) {
+          if (werkzeuge) {
             var subRow = document.createElement("div");
             subRow.className = "row";
             subRow.appendChild(jump);
-            subRow.appendChild(ordnung);
+            subRow.appendChild(werkzeuge);
             subLi.appendChild(subRow);
           } else {
             subLi.appendChild(jump);
@@ -2036,7 +2109,7 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
         subs.className = "toc-subs";
         row.appendChild(tog);
         row.appendChild(jump);
-        if (ordnung) row.appendChild(ordnung);
+        if (werkzeuge) row.appendChild(werkzeuge);
         li.appendChild(row);
         li.appendChild(subs);
         list.appendChild(li);
@@ -2066,6 +2139,13 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
           subs.style.height = "0px";
         }
       });
+
+      if (warFokus && markiert) {
+        var wieder = [].slice.call(list.querySelectorAll(".jump")).filter(function (b) {
+          return b.__kopf === markiert;
+        })[0];
+        if (wieder) wieder.focus();
+      }
       return heads.length;
     }
 
@@ -2673,18 +2753,18 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
         eltern.insertBefore(k, anker);
       });
       changed("cmd");
-      try {
-        box.focus({ preventScroll: true });
-      } catch (e) {
-        box.focus();
-      }
+      /* Kein box.focus() hier — die Markierung in der Gliederung muss den
+         Tastaturfokus behalten, damit die nächste Pfeiltaste weiterwirkt. */
       h.scrollIntoView({ block: "center", behavior: "auto" });
       flashHeading(h);
     }
 
-    toc = buildToc(box, function (h) {
+    toc = buildToc(box, function (h, cursorRein) {
       h.scrollIntoView({ block: "center", behavior: "auto" });
       flashHeading(h);
+      /* Beim einfachen Antippen bleibt die Markierung in der Gliederung, damit
+         die Pfeiltasten dort wirken. Doppelklick setzt den Cursor in den Text. */
+      if (!cursorRein) return;
       var r = document.createRange();
       r.selectNodeContents(h);
       r.collapse(false);
