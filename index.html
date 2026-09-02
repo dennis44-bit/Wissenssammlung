@@ -2766,12 +2766,23 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
             var vorher = blk.previousElementSibling;
             var leer = !blk.textContent.trim() && !blk.querySelector("img, hr, table");
             if (leer && vorher) {
-              /* Leerzeile einfach entfernen, statt sie in den Block davor
-                 einzuschmelzen — sonst landet der Text in der Überschrift. */
+              /* Leerzeile entfernen, statt sie in den Block davor einzuschmelzen.
+                 Der Cursor darf dabei nicht in einer Überschrift landen — sonst
+                 tippt man danach versehentlich in die Überschrift hinein. */
+              var danach = blk.nextElementSibling;
               e.preventDefault();
               run(function () {
                 blk.remove();
-                caretAnsEnde(vorher);
+                if (/^H[345]$/.test(vorher.tagName) && danach) {
+                  var r2 = document.createRange();
+                  r2.selectNodeContents(danach);
+                  r2.collapse(true);
+                  var s2 = window.getSelection();
+                  s2.removeAllRanges();
+                  s2.addRange(r2);
+                } else {
+                  caretAnsEnde(vorher);
+                }
                 return "eigenerCursor";
               }, false);
               return;
