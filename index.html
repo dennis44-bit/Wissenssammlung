@@ -2330,6 +2330,9 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
     /* Jede Änderung im Text wird als Schritt in den gemeinsamen Verlauf gelegt —
        auch die, die der Browser selbst nicht kennt (Tabellenzeilen etwa). */
     var textKey = topic.id || "__home";
+    /* Ein Tabulatorschritt — vier geschützte Leerzeichen, damit er beim
+       Sichern erhalten bleibt und überall gleich breit ist. */
+    var TABULATOR = "\u00a0\u00a0\u00a0\u00a0";
     var toc = null;
     var histPrev = "";
     var histTime = 0;
@@ -2584,6 +2587,54 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
       return true;
     }
 
+    /* Einrücken selbst machen: der Browser baut bei Aufzählungen eine Liste
+       NEBEN den Punkt statt hinein und packt Überschriften in Zitatblöcke.
+       Hier wird nur der Text verschoben, der Aufbau bleibt heil. */
+    function einruecken(zurueck) {
+      var li = selectionIn(box, /^LI$/);
+      if (li) {
+        var liste = li.parentElement;
+        if (!liste || !/^(UL|OL)$/.test(liste.tagName)) return;
+        if (!zurueck) {
+          var vor = li.previousElementSibling;
+          if (!vor) return;
+          var unter = null;
+          [].slice.call(vor.children).forEach(function (k) {
+            if (/^(UL|OL)$/.test(k.tagName)) unter = k;
+          });
+          if (!unter) {
+            unter = document.createElement(liste.tagName.toLowerCase());
+            vor.appendChild(unter);
+          }
+          unter.appendChild(li);
+        } else {
+          var elternLi = liste.parentElement;
+          if (!elternLi || elternLi.tagName !== "LI") return;
+          var zielListe = elternLi.parentElement;
+          zielListe.insertBefore(li, elternLi.nextSibling);
+          if (!liste.children.length) liste.remove();
+        }
+        return;
+      }
+
+      var s2 = window.getSelection();
+      var blk = s2 && s2.rangeCount ? blockVon(s2.anchorNode) : null;
+      if (!blk) return;
+      /* Überschriften bleiben, wo sie sind — sonst zerfällt die Gliederung */
+      if (/^H[345]$/.test(blk.tagName)) return;
+      if (zurueck) {
+        var bq = blk.parentElement;
+        if (bq && bq.tagName === "BLOCKQUOTE") {
+          bq.parentNode.insertBefore(blk, bq);
+          if (!bq.children.length) bq.remove();
+        }
+      } else {
+        var neu = document.createElement("blockquote");
+        blk.parentNode.insertBefore(neu, blk);
+        neu.appendChild(blk);
+      }
+    }
+
     function unheading() {
       if (selectionIn(box, /^(H3|H4|H5)$/)) cmd("formatBlock", "p");
     }
@@ -2707,11 +2758,11 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
       var l = selectionIn(box, /^(UL|OL)$/);
       return !!l && l.tagName === "OL";
     });
-    tool("⇥", "Einrücken (Tab)", function () {
-      cmd("indent");
+    tool("⇥", "Ganzen Absatz einrücken", function () {
+      einruecken(false);
     });
-    tool("⇤", "Ausrücken (Shift+Tab)", function () {
-      cmd("outdent");
+    tool("⇤", "Absatz wieder ausrücken", function () {
+      einruecken(true);
     });
     sep();
     tool("▦", "Tabelle einfügen", function () {
@@ -2829,8 +2880,70 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
         }
         e.preventDefault();
         run(function () {
-          cmd(e.shiftKey ? "outdent" : "indent");
-        });
+          var sel = window.getSelection();
+          if (!sel || !sel.rangeCount) return;
+          var r = sel.getRangeAt(0);
+
+          if (!e.shiftKey) {
+            /* direkt setzen statt über den Browser — der macht aus jedem
+               zweiten geschützten Leerzeichen sonst ein normales */
+            r.deleteContents();
+            var tn = document.createTextNode(TABULATOR);
+            r.insertNode(tn);
+            /* kein normalize() hier — das legt Textknoten zusammen und die
+               gerade gesetzte Cursorposition rutscht ans Zeilenende */
+            var nach = document.createRange();
+            nach.setStart(tn, tn.nodeValue.length);
+            nach.collapse(true);
+            sel.removeAllRanges();
+            sel.addRange(nach);
+            return "eigenerCursor";
+          }
+
+          /* Shift+Tab: einen Tabulatorschritt links vom Cursor wegnehmen.
+             Muss über Textgrenzen hinweg gehen — nach mehreren Tabs liegen
+             dort mehrere getrennte Textstücke. */
+          if (!sel.isCollapsed) return;
+          var kn = r.startContainer;
+          if (kn.nodeType !== 3) return;
+          var blk = blockVon(kn) || box;
+
+          function textDavor(n) {
+            var lauf = document.createTreeWalker(blk, NodeFilter.SHOW_TEXT, null);
+            var vorher = null;
+            var m;
+            while ((m = lauf.nextNode())) {
+              if (m === n) return vorher;
+              vorher = m;
+            }
+            return null;
+          }
+
+          var node = kn;
+          var off = r.startOffset;
+          var entfernt = 0;
+          while (entfernt < TABULATOR.length) {
+            if (off === 0) {
+              var davor = textDavor(node);
+              if (!davor) break;
+              node = davor;
+              off = node.nodeValue.length;
+              continue;
+            }
+            var z = node.nodeValue.charAt(off - 1);
+            if (z !== "\u00a0" && z !== " ") break;
+            node.deleteData(off - 1, 1);
+            off--;
+            entfernt++;
+          }
+          if (!entfernt) return;
+          var zurueck = document.createRange();
+          zurueck.setStart(node, off);
+          zurueck.collapse(true);
+          sel.removeAllRanges();
+          sel.addRange(zurueck);
+          return "eigenerCursor";
+        }, false);
         return;
       }
 
@@ -3312,7 +3425,7 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
 
   /* Sichtbarer Baustand — damit man sofort sieht, ob der Browser noch eine
      alte Fassung im Zwischenspeicher hat. Steht im Verbindungs-Dialog. */
-  var BAUSTAND = "02.09.2026 13:37";
+  var BAUSTAND = "02.09.2026 13:51";
 
   var CFG_KEY = "tg-server";
   var cfg = null;
