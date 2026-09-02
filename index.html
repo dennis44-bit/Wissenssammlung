@@ -246,10 +246,15 @@ h2.title{
   color:var(--ink); margin:22px 0 6px;
 }
 .doc > *:first-child{margin-top:0}
-.doc p{margin:0 0 14px}
-.doc ul, .doc ol{margin:0 0 16px; padding-left:22px; display:flex; flex-direction:column; gap:5px}
+/* Kein zusätzlicher Abstand zwischen Absätzen und Aufzählungen — der Text
+   läuft durch wie innerhalb eines Absatzes. Überschriften behalten ihren
+   Abstand, damit die Gliederung erkennbar bleibt. */
+.doc p{margin:0}
+.doc ul, .doc ol{margin:0; padding-left:22px; display:flex; flex-direction:column; gap:0}
 .doc li{padding-left:2px}
-.doc li > ul, .doc li > ol{margin:5px 0 0}
+.doc li > ul, .doc li > ol{margin:0}
+/* Einrücken per Tab: reine Verschiebung nach rechts, keine Zitat-Optik */
+.doc blockquote{margin:0 0 0 22px; padding:0; border:0}
 .doc strong{color:var(--ink); font-weight:600}
 .doc code{
   font-family:"IBM Plex Sans", monospace; font-size:.88em;
@@ -2185,9 +2190,12 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
   var ALLOWED = {
     H3: 1, H4: 1, H5: 1, P: 1, UL: 1, OL: 1, LI: 1,
     STRONG: 1, B: 1, EM: 1, I: 1, U: 1, BR: 1, HR: 1,
-    TABLE: 1, THEAD: 1, TBODY: 1, TR: 1, TH: 1, TD: 1, CODE: 1
+    TABLE: 1, THEAD: 1, TBODY: 1, TR: 1, TH: 1, TD: 1, CODE: 1,
+    /* trägt die Einrückung — wurde vorher beim Sichern zu einem Absatz
+       plattgemacht, deshalb war jede Einrückung nach dem Speichern weg */
+    BLOCKQUOTE: 1
   };
-  var RENAME = { DIV: "p", H1: "h3", H2: "h3", H6: "h5", BLOCKQUOTE: "p" };
+  var RENAME = { DIV: "p", H1: "h3", H2: "h3", H6: "h5" };
 
   function sanitize(html) {
     var box = document.createElement("div");
@@ -2508,6 +2516,12 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
        invalid and breaks every later edit — flatten it right away. */
     function normalizeDom() {
       absaetzeInContainer(box);
+      /* Der Browser schreibt beim Einrücken eigene Abstände direkt ins Element.
+         Beim Sichern fallen die ohnehin weg — also gleich raus, damit das
+         Schreiben genauso aussieht wie das fertige Dokument. */
+      [].slice.call(box.querySelectorAll("[style]")).forEach(function (el) {
+        el.removeAttribute("style");
+      });
       [].slice.call(box.querySelectorAll("p, h3, h4, h5")).forEach(function (el) {
         if (!el.parentNode || !el.querySelector("ul, ol, table, hr, h3, h4, h5, p")) return;
         var par = el.parentNode;
@@ -2813,12 +2827,10 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
           if (target) focusCell(target);
           return;
         }
-        if (selectionIn(box, /^LI$/)) {
-          e.preventDefault();
-          run(function () {
-            cmd(e.shiftKey ? "outdent" : "indent");
-          });
-        }
+        e.preventDefault();
+        run(function () {
+          cmd(e.shiftKey ? "outdent" : "indent");
+        });
         return;
       }
 
@@ -3298,6 +3310,10 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
 
   /* ---------- Speichern über den eigenen Server ---------- */
 
+  /* Sichtbarer Baustand — damit man sofort sieht, ob der Browser noch eine
+     alte Fassung im Zwischenspeicher hat. Steht im Verbindungs-Dialog. */
+  var BAUSTAND = "02.09.2026 13:37";
+
   var CFG_KEY = "tg-server";
   var cfg = null;
   try {
@@ -3336,7 +3352,7 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
   function askServer(erstmalig) {
     modal({
       title: erstmalig ? "Mit deinem Speicher verbinden" : "Verbindung ändern",
-      text: "Adresse deines Speichers und das Passwort, das du dort gesetzt hast.",
+      text: "Adresse deines Speichers und das Passwort, das du dort gesetzt hast.  ·  Fassung " + BAUSTAND,
       fields: [
         { key: "url", label: "Adresse", value: (cfg && cfg.url) || "",
           placeholder: "https://…workers.dev", mode: "url", required: true },
