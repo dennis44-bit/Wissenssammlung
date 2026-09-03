@@ -1903,10 +1903,10 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
 
   function buildToc(root, onPick, onMove, kannVerschieben) {
     var markiert = null;
-    var collapsed = false;
-    try {
-      collapsed = localStorage.getItem("tg-toc") === "0";
-    } catch (e) {}
+    /* Die Gliederung startet immer zugeklappt — sie ist ein Sprungbrett, das
+       man bei Bedarf aufmacht, und soll dem Text nicht dauerhaft den Platz
+       oben wegnehmen. Aufklappen gilt für die gerade offene Ansicht. */
+    var collapsed = true;
 
     var box = document.createElement("nav");
     box.className = "toc";
@@ -1934,9 +1934,6 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
     }
     toggle.addEventListener("click", function () {
       collapsed = !collapsed;
-      try {
-        localStorage.setItem("tg-toc", collapsed ? "0" : "1");
-      } catch (e) {}
       sync();
     });
 
@@ -3486,6 +3483,16 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
     });
   }
 
+  /* Was gerade offen ist, ist Ansichtssache dieses Geräts und kein Inhalt —
+     also nicht mitsichern, sonst öffnet das nächste Gerät wieder dieses Thema. */
+  function standJson() {
+    var offen = state.selected;
+    state.selected = null;
+    var txt = JSON.stringify(state);
+    state.selected = offen;
+    return txt;
+  }
+
   function save() {
     if (homeEditing) {
       commitHome(true);
@@ -3502,7 +3509,7 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
     }
     saveBtn.disabled = true;
     statusText.textContent = "Wird gesichert …";
-    var stand = JSON.stringify(state);
+    var stand = standJson();
     try {
       /* Bis der Server bestätigt hat, liegt der Stand lokal —
          sonst wäre er bei einem Verbindungsabbruch weg. */
@@ -3558,6 +3565,9 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
 
   function normalise() {
     if (!state.groups) state.groups = [];
+    /* Die App startet immer bei der Übersicht — ein gespeichertes
+       "zuletzt offen" aus einem älteren Stand wird dabei verworfen. */
+    state.selected = null;
     if (!state.home || typeof state.home !== "object") state.home = {};
     if (typeof state.home.eyebrow !== "string") state.home.eyebrow = "Wissenssammlung";
     if (typeof state.home.title !== "string") state.home.title = "Themengebiete";
@@ -3622,16 +3632,24 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
         normalise();
         var offen = offenerStand();
         var zurueck = false;
-        if (offen && offen !== JSON.stringify(state)) {
+        var offenState = null;
+        if (offen) {
           try {
             var q = JSON.parse(offen);
-            if (q && q.groups) {
-              state = q;
-              normalise();
-              zurueck = true;
-            }
+            if (q && q.groups) offenState = q;
           } catch (e) {}
-        } else {
+        }
+        if (offenState) {
+          /* selbe Bereinigung wie beim Sichern, sonst gälte allein die
+             zuletzt offene Seite schon als ungesicherte Änderung */
+          offenState.selected = null;
+          if (JSON.stringify(offenState) !== JSON.stringify(state)) {
+            state = offenState;
+            normalise();
+            zurueck = true;
+          }
+        }
+        if (!zurueck) {
           try {
             localStorage.removeItem("tg-pending");
           } catch (e) {}
