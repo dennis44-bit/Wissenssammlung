@@ -5,7 +5,7 @@
    seinem eigenen Zwischenspeicher zu nehmen. Deshalb holen wir hier mit
    cache:"reload" bewusst am Browser-Zwischenspeicher vorbei — sonst zeigt
    die App nach einer Änderung minutenlang die alte Fassung. */
-var CACHE = "themengebiete-v3";
+var CACHE = "themengebiete-v4";
 var DATEIEN = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg"];
 
 self.addEventListener("install", function (e) {
