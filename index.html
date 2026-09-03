@@ -2232,7 +2232,9 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
     });
     /* auch beim Sichern: freistehender Text wird zu Absätzen */
     absaetzeInContainer(box);
-    box.innerHTML = box.innerHTML.replace(/<p>\s*(<br>)?\s*<\/p>/g, "");
+    /* Ein leerer Absatz ist eine bewusst gesetzte Leerzeile — die bleibt
+       stehen, sonst verschwindet jeder von Hand gemachte Abstand beim
+       Sichern wieder. */
     return box.innerHTML.trim();
   }
 
