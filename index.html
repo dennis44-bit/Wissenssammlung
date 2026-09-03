@@ -1903,10 +1903,10 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
 
   function buildToc(root, onPick, onMove, kannVerschieben) {
     var markiert = null;
-    /* Die Gliederung startet immer zugeklappt — sie ist ein Sprungbrett, das
-       man bei Bedarf aufmacht, und soll dem Text nicht dauerhaft den Platz
-       oben wegnehmen. Aufklappen gilt für die gerade offene Ansicht. */
-    var collapsed = true;
+    /* Die Gliederung ist beim Öffnen da — nur ihre Unterpunkte sind zu,
+       siehe zugeklappt[] weiter unten. Ausblenden gilt für die gerade
+       offene Ansicht und wird nicht gemerkt. */
+    var collapsed = false;
 
     var box = document.createElement("nav");
     box.className = "toc";
@@ -2134,8 +2134,7 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
           var zu = !li.classList.contains("closed");
           li.classList.toggle("closed", zu);
           tog.setAttribute("aria-expanded", zu ? "false" : "true");
-          if (zu) zugeklappt[key] = true;
-          else delete zugeklappt[key];
+          zugeklappt[key] = zu;
           slide(subs, !zu);
         });
 
@@ -2148,8 +2147,11 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
         var tog = li.querySelector(".sub-toggle");
         if (!subs || !subs.children.length) return;
         tog.classList.remove("empty");
-        tog.setAttribute("aria-expanded", zugeklappt[i] ? "false" : "true");
-        if (zugeklappt[i]) {
+        /* Wer hier noch nichts umgeschaltet hat, bekommt den Punkt zu:
+           beim Öffnen zeigt die Gliederung nur die Hauptpunkte. */
+        var zu = zugeklappt[i] === undefined ? true : zugeklappt[i];
+        tog.setAttribute("aria-expanded", zu ? "false" : "true");
+        if (zu) {
           li.classList.add("closed");
           subs.style.height = "0px";
         }
@@ -3425,7 +3427,7 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
 
   /* Sichtbarer Baustand — damit man sofort sieht, ob der Browser noch eine
      alte Fassung im Zwischenspeicher hat. Steht im Verbindungs-Dialog. */
-  var BAUSTAND = "03.09.2026 13:26";
+  var BAUSTAND = "03.09.2026 13:33";
 
   var CFG_KEY = "tg-server";
   var cfg = null;
