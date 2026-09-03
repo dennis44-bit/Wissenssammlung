@@ -2867,17 +2867,8 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
 
 
       if (e.key === "Tab") {
-        if (cell) {
-          e.preventDefault();
-          var target = nextCell(cell, e.shiftKey);
-          if (!target && !e.shiftKey) {
-            var tr = addRow();
-            if (tr) changed("cmd");
-            return;
-          }
-          if (target) focusCell(target);
-          return;
-        }
+        /* Tab macht genau eine Sache: einen Tabulator an der Cursorstelle.
+           Kein Springen zwischen Tabellenzellen, kein Umbau von Aufzählungen. */
         e.preventDefault();
         run(function () {
           var sel = window.getSelection();
@@ -2951,6 +2942,18 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
         var sel0 = window.getSelection();
         if (sel0 && sel0.isCollapsed && sel0.rangeCount) {
           var blk = blockVon(sel0.anchorNode);
+
+          /* Am Anfang eines Aufzählungspunkts nimmt die Rücktaste den Punkt
+             weg — wie in Word. Vorher musste man dafür den •-Knopf treffen. */
+          if (blk && blk.tagName === "LI" && amBlockAnfang(blk)) {
+            e.preventDefault();
+            run(function () {
+              if (listeAufloesen()) return "eigenerCursor";
+              einruecken(true);
+            }, false);
+            return;
+          }
+
           if (blk && /^(P|H3|H4|H5)$/.test(blk.tagName) && amBlockAnfang(blk)) {
             var vorher = blk.previousElementSibling;
             var leer = !blk.textContent.trim() && !blk.querySelector("img, hr, table");
@@ -3425,7 +3428,7 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
 
   /* Sichtbarer Baustand — damit man sofort sieht, ob der Browser noch eine
      alte Fassung im Zwischenspeicher hat. Steht im Verbindungs-Dialog. */
-  var BAUSTAND = "02.09.2026 13:51";
+  var BAUSTAND = "03.09.2026 13:13";
 
   var CFG_KEY = "tg-server";
   var cfg = null;
