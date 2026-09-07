@@ -349,6 +349,37 @@ h2.title{
   .zeit-punkte{transition:none}
   .zeit-mehr .chev{transition:none}
 }
+/* Bearbeiten-Modus: die Felder sind direkt beschreibbar. Sie sehen aus wie
+   im Lesemodus, nur mit dezentem Rahmen, damit man sieht, wo man tippen kann. */
+.zeit-feld, .zeit-punkte-edit{
+  border:1px solid transparent; border-radius:7px;
+  padding:3px 7px; margin-left:-7px; outline:none;
+  transition:background .12s ease, border-color .12s ease;
+}
+.zeit-feld:hover, .zeit-punkte-edit:hover{border-color:var(--line)}
+.zeit-feld:focus, .zeit-punkte-edit:focus{
+  border-color:var(--accent); background:var(--surface);
+}
+/* Die Zeit-Pille behält im Bearbeiten-Modus ihre Form, wird aber beschreibbar. */
+.zeit.bearbeiten .zeit-wann{
+  display:inline-block; border-radius:999px; border-color:var(--accent-line);
+  padding:3px 11px; margin-left:0;
+}
+.zeit-feld:empty::before, .zeit-punkte-edit li:only-child:empty::before{
+  content:attr(data-platzhalter); color:var(--muted); font-weight:400;
+  letter-spacing:normal; text-transform:none; pointer-events:none;
+}
+.zeit-punkte-edit{
+  margin:10px 0 0 13px; padding-left:20px;
+  font-family:"Source Serif 4", Georgia, serif; font-size:16px; line-height:1.55;
+  color:var(--ink-2); max-width:62ch; list-style:disc;
+}
+.zeit-punkte-edit:empty::before{
+  content:attr(data-platzhalter); color:var(--muted); font-size:14px;
+}
+.zeit-punkte-edit li{padding-left:2px; margin-bottom:3px}
+.zeit-punkte-edit li::marker{color:var(--accent-line)}
+.zeit.bearbeiten .zeit-item{padding-bottom:30px}
 .zeit-tools{display:flex; gap:4px; margin-top:12px}
 .zeit-leer{color:var(--muted); font-size:14px; margin:0 0 4px}
 .zeit-add{margin-top:22px}
@@ -1670,52 +1701,42 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
      Zeitstrahl soll beim Öffnen die Übersicht zeigen, nicht alles ausgebreitet. */
   var zeitOffen = {};
 
-  function zeitDialog(topic, e) {
-    var neu = !e;
-    modal({
-      title: neu ? "Neuer Eintrag" : "Eintrag bearbeiten",
-      stack: true,
-      fields: [
-        { key: "wann", label: "Wann", value: neu ? "" : e.wann,
-          placeholder: "z. B. 1789 oder vor 66 Mio. Jahren", required: true },
-        { key: "was", label: "Ereignis", value: neu ? "" : e.was,
-          placeholder: "z. B. Französische Revolution", required: true },
-        { key: "text", label: "Beschreibung (kann leer bleiben)",
-          value: neu ? "" : (e.text || ""), multi: true },
-        { key: "punkte", label: "Unterpunkte — einer pro Zeile",
-          value: neu ? "" : (e.punkte || []).join("\n"),
-          placeholder: "Eine Zeile = ein Punkt. Zeile löschen entfernt den Punkt.",
-          multi: true }
-      ],
-      confirm: neu ? "Anlegen" : "Speichern",
-      onOk: function (v) {
-        /* Eine Zeile ist ein Punkt; leere Zeilen fallen weg, damit ein
-           versehentlicher Umbruch keinen leeren Aufzählungspunkt erzeugt. */
-        var punkte = v.punkte
-          .split("\n")
-          .map(function (z) { return z.replace(/^[-–•*\s]+/, "").trim(); })
-          .filter(function (z) { return z.length > 0; });
-        snapshot();
-        if (neu) {
-          if (!topic.zeit) topic.zeit = [];
-          var eintrag = { id: uid("z"), wann: v.wann, was: v.was };
-          if (v.text) eintrag.text = v.text;
-          if (punkte.length) eintrag.punkte = punkte;
-          topic.zeit.push(eintrag);
-        } else {
-          e.wann = v.wann;
-          e.was = v.was;
-          /* Geleerte Felder ganz entfernen statt als leeren Wert behalten —
-             sonst sammeln sich unsichtbare Reste im gespeicherten Stand. */
-          if (v.text) e.text = v.text;
-          else delete e.text;
-          if (punkte.length) e.punkte = punkte;
-          else delete e.punkte;
-        }
-        markDirty();
-        render();
-      }
+  /* Beim Tippen soll ein Rückgängig-Schritt die ganze Bearbeitung eines Feldes
+     umfassen, nicht jeden Tastendruck. Deshalb genau ein Schnappschuss je
+     Feld-Besuch, ausgelöst von der ersten Änderung. */
+  var zeitSchnappschussOffen = false;
+  function zeitSchnappschuss() {
+    if (zeitSchnappschussOffen) return;
+    zeitSchnappschussOffen = true;
+    snapshot();
+  }
+
+  /* Ein direkt beschreibbares Feld. Kein Dialog: tippen, löschen, fertig. */
+  function zeitFeld(klasse, wert, platzhalter, beiAenderung) {
+    var el = document.createElement("div");
+    el.className = klasse + " zeit-feld";
+    el.contentEditable = "true";
+    el.spellcheck = false;
+    el.setAttribute("data-platzhalter", platzhalter);
+    el.textContent = wert || "";
+    el.addEventListener("focus", function () {
+      zeitSchnappschussOffen = false;
     });
+    el.addEventListener("input", function () {
+      zeitSchnappschuss();
+      beiAenderung(el.textContent);
+      markDirty();
+    });
+    /* Einzeilige Felder bleiben einzeilig — Enter würde sonst ein <div> anlegen. */
+    el.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") e.preventDefault();
+    });
+    el.addEventListener("paste", function (e) {
+      e.preventDefault();
+      var t = (e.clipboardData || window.clipboardData).getData("text/plain");
+      document.execCommand("insertText", false, t.replace(/\s+/g, " "));
+    });
+    return el;
   }
 
   function zeitVerschieben(topic, i, richtung) {
@@ -1736,13 +1757,33 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
     toast("Eintrag gelöscht — mit \u21B6 oben zurückholen.");
   }
 
+  function zeitHinzufuegen(topic) {
+    snapshot();
+    if (!topic.zeit) topic.zeit = [];
+    var neuerEintrag = { id: uid("z"), wann: "", was: "" };
+    topic.zeit.push(neuerEintrag);
+    markDirty();
+    render();
+    /* gleich in das neue Feld springen, damit man sofort lostippen kann */
+    var felder = document.querySelectorAll(".zeit-item .zeit-wann");
+    var letztes = felder[felder.length - 1];
+    if (letztes) {
+      letztes.focus();
+      var r = document.createRange();
+      r.selectNodeContents(letztes);
+      r.collapse(false);
+      var sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(r);
+    }
+  }
+
   function buildZeit(topic, bearbeiten) {
     var wrap = document.createElement("div");
     var liste = zeitListe(topic);
 
     var box = document.createElement("div");
-    /* ohne Einträge keine Linie — sonst steht ein Strich im Leeren */
-    box.className = "zeit" + (liste.length ? "" : " leer");
+    box.className = "zeit" + (liste.length ? "" : " leer") + (bearbeiten ? " bearbeiten" : "");
     wrap.appendChild(box);
 
     if (!liste.length) {
@@ -1757,6 +1798,86 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
     liste.forEach(function (e, i) {
       var item = document.createElement("div");
       item.className = "zeit-item";
+
+      if (bearbeiten) {
+        item.appendChild(zeitFeld("zeit-wann", e.wann, "Wann?", function (v) {
+          e.wann = v;
+        }));
+        item.appendChild(zeitFeld("zeit-was", e.was, "Ereignis", function (v) {
+          e.was = v;
+        }));
+        item.appendChild(zeitFeld("zeit-text", e.text, "Beschreibung (kann leer bleiben)",
+          function (v) {
+            if (v.trim()) e.text = v;
+            else delete e.text;
+          }));
+
+        /* Die Punkte sind eine echte, beschreibbare Liste: Enter legt einen
+           neuen an, Rücktaste am Zeilenanfang führt zwei zusammen. */
+        var ul = document.createElement("ul");
+        ul.className = "zeit-punkte-edit";
+        ul.contentEditable = "true";
+        ul.spellcheck = false;
+        ul.setAttribute("data-platzhalter", "Unterpunkte — Enter für den nächsten");
+        (e.punkte || []).forEach(function (pt) {
+          var li = document.createElement("li");
+          li.textContent = pt;
+          ul.appendChild(li);
+        });
+        if (!ul.children.length) {
+          var leerLi = document.createElement("li");
+          leerLi.appendChild(document.createElement("br"));
+          ul.appendChild(leerLi);
+        }
+        ul.addEventListener("focus", function () {
+          zeitSchnappschussOffen = false;
+        });
+        ul.addEventListener("input", function () {
+          zeitSchnappschuss();
+          /* Löscht man alles, bleibt manchmal gar kein <li> übrig — dann
+             hätte man keine Zeile mehr, in die man tippen könnte. */
+          if (!ul.querySelector("li")) {
+            var wieder = document.createElement("li");
+            wieder.appendChild(document.createElement("br"));
+            ul.appendChild(wieder);
+          }
+          var pts = [].slice.call(ul.querySelectorAll("li"))
+            .map(function (li) { return li.textContent.trim(); })
+            .filter(function (t) { return t.length > 0; });
+          if (pts.length) e.punkte = pts;
+          else delete e.punkte;
+          markDirty();
+        });
+        ul.addEventListener("paste", function (ev) {
+          ev.preventDefault();
+          var t = (ev.clipboardData || window.clipboardData).getData("text/plain");
+          document.execCommand("insertText", false, t);
+        });
+        item.appendChild(ul);
+
+        var tools = document.createElement("div");
+        tools.className = "zeit-tools";
+        [
+          ["\u2191", "Nach oben", i === 0, function () { zeitVerschieben(topic, i, -1); }],
+          ["\u2193", "Nach unten", i === liste.length - 1, function () { zeitVerschieben(topic, i, 1); }],
+          ["\u2715", "Eintrag löschen", false, function () { zeitLoeschen(topic, i); }]
+        ].forEach(function (f) {
+          var b = document.createElement("button");
+          b.type = "button";
+          b.className = "btn sm" + (f[0] === "\u2715" ? " danger" : "");
+          b.textContent = f[0];
+          b.title = f[1];
+          b.setAttribute("aria-label", f[1]);
+          b.disabled = f[2];
+          b.addEventListener("click", f[3]);
+          tools.appendChild(b);
+        });
+        item.appendChild(tools);
+        box.appendChild(item);
+        return;
+      }
+
+      /* ---- Lesen ---- */
       item.innerHTML =
         '<div class="zeit-wann">' + esc(e.wann || "") + "</div>" +
         '<div class="zeit-was">' + esc(e.was || "") + "</div>" +
@@ -1797,30 +1918,8 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
         item.appendChild(huelle);
       }
 
-      if (bearbeiten) {
-        var tools = document.createElement("div");
-        tools.className = "zeit-tools";
-        [
-          ["\u270E", "Eintrag bearbeiten", false, function () { zeitDialog(topic, e); }],
-          ["\u2191", "Nach oben", i === 0, function () { zeitVerschieben(topic, i, -1); }],
-          ["\u2193", "Nach unten", i === liste.length - 1, function () { zeitVerschieben(topic, i, 1); }],
-          ["\u2715", "Eintrag löschen", false, function () { zeitLoeschen(topic, i); }]
-        ].forEach(function (f) {
-          var b = document.createElement("button");
-          b.type = "button";
-          b.className = "btn sm" + (f[0] === "\u2715" ? " danger" : "");
-          b.textContent = f[0];
-          b.title = f[1];
-          b.setAttribute("aria-label", f[1]);
-          b.disabled = f[2];
-          b.addEventListener("click", f[3]);
-          tools.appendChild(b);
-        });
-        item.appendChild(tools);
-      } else {
-        item.title = "Doppelklick zum Bearbeiten";
-        item.addEventListener("dblclick", startEditing);
-      }
+      item.title = "Doppelklick zum Bearbeiten";
+      item.addEventListener("dblclick", startEditing);
       box.appendChild(item);
     });
 
@@ -1830,7 +1929,7 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
       add.className = "btn primary zeit-add";
       add.textContent = "+ Eintrag";
       add.addEventListener("click", function () {
-        zeitDialog(topic, null);
+        zeitHinzufuegen(topic);
       });
       wrap.appendChild(add);
     }
@@ -3761,7 +3860,7 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
 
   /* Sichtbarer Baustand — damit man sofort sieht, ob der Browser noch eine
      alte Fassung im Zwischenspeicher hat. Steht im Verbindungs-Dialog. */
-  var BAUSTAND = "07.09.2026 14:43";
+  var BAUSTAND = "07.09.2026 14:56";
 
   var CFG_KEY = "tg-server";
   var cfg = null;
