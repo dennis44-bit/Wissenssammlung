@@ -280,37 +280,53 @@ h2.title{
   background:var(--surface); color:var(--ink); box-shadow:0 1px 2px rgba(0,0,0,.08);
 }
 
-/* Die Linie liegt als ::before hinter den Einträgen, die Punkte sitzen darauf.
-   Beide teilen sich dieselbe Mitte bei 7px, sonst läuft der Punkt neben der Linie. */
-.zeit{position:relative; padding-left:26px}
+/* Linie und Punkte teilen sich dieselbe Mitte bei 9,5px — die Zahlen unten
+   hängen voneinander ab, beim Ändern beide nachrechnen. */
+.zeit{position:relative; padding-left:34px}
 .zeit::before{
-  content:""; position:absolute; left:6px; top:7px; bottom:7px;
-  width:2px; background:var(--accent-line); border-radius:2px;
+  content:""; position:absolute; left:8px; top:10px; bottom:10px; width:3px;
+  border-radius:3px;
+  /* oben und unten weich auslaufen, damit die Linie nicht abgehackt endet */
+  background:linear-gradient(to bottom,
+    transparent 0, var(--accent-line) 14px,
+    var(--accent-line) calc(100% - 14px), transparent 100%);
 }
 .zeit.leer{padding-left:0}
 .zeit.leer::before{display:none}
-.zeit-item{position:relative; padding-bottom:26px}
+
+.zeit-item{position:relative; padding-bottom:34px}
 .zeit-item:last-child{padding-bottom:0}
 .zeit-item::before{
-  content:""; position:absolute; left:-26px; top:4px;
-  width:10px; height:10px; border-radius:50%;
-  background:var(--accent); border:2px solid var(--bg);
+  /* top so gewählt, dass die Punktmitte auf der Mitte der Zeit-Pille liegt */
+  content:""; position:absolute; left:-34px; top:3px;
+  width:13px; height:13px; border-radius:50%;
+  background:var(--accent);
+  /* innerer Rand in Hintergrundfarbe stanzt die Linie frei,
+     der Schatten legt einen hellen Ring darum */
+  border:3px solid var(--bg);
+  box-shadow:0 0 0 2px var(--accent-line);
 }
+
+/* Die Zeitangabe als Pille — dieselbe Sprache wie die übrigen Marker der App. */
 .zeit-wann{
-  font-family:"IBM Plex Sans", sans-serif; font-size:12px; font-weight:600;
-  letter-spacing:.09em; text-transform:uppercase; color:var(--accent);
+  display:inline-block;
+  font-family:"IBM Plex Sans", sans-serif; font-size:11.5px; font-weight:600;
+  letter-spacing:.08em; text-transform:uppercase;
+  color:var(--accent-ink); background:var(--accent-soft);
+  border:1px solid var(--accent-line); border-radius:999px;
+  padding:3px 11px;
 }
 .zeit-was{
-  font-family:"Fraunces", Georgia, serif; font-size:19px; font-weight:600;
-  color:var(--ink); letter-spacing:-.01em; margin-top:2px;
+  font-family:"Fraunces", Georgia, serif; font-size:22px; font-weight:600;
+  color:var(--ink); letter-spacing:-.015em; line-height:1.2; margin-top:9px;
 }
 .zeit-text{
-  font-family:"Source Serif 4", Georgia, serif; font-size:16px; line-height:1.6;
-  color:var(--ink-2); margin:4px 0 0;
+  font-family:"Source Serif 4", Georgia, serif; font-size:16.5px; line-height:1.62;
+  color:var(--ink-2); margin:6px 0 0; max-width:62ch;
 }
-.zeit-tools{display:flex; gap:4px; margin-top:8px}
+.zeit-tools{display:flex; gap:4px; margin-top:12px}
 .zeit-leer{color:var(--muted); font-size:14px; margin:0 0 4px}
-.zeit-add{margin-top:18px}
+.zeit-add{margin-top:22px}
 .table-wrap{overflow-x:auto; margin:0 0 18px}
 .doc table{border-collapse:collapse; font-size:15px; width:auto; max-width:100%}
 .doc th, .doc td{
@@ -3662,7 +3678,7 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
 
   /* Sichtbarer Baustand — damit man sofort sieht, ob der Browser noch eine
      alte Fassung im Zwischenspeicher hat. Steht im Verbindungs-Dialog. */
-  var BAUSTAND = "07.09.2026 13:53";
+  var BAUSTAND = "07.09.2026 14:22";
 
   var CFG_KEY = "tg-server";
   var cfg = null;
