@@ -264,6 +264,53 @@ h2.title{
   background:var(--surface-2); padding:1px 5px; border-radius:4px;
 }
 .doc hr{border:none; border-top:1px solid var(--line); margin:28px 0}
+
+/* ---------- Zeitstrahl ---------- */
+/* Umschalter zwischen Text und Zeitstrahl — sitzt vorn in der Werkzeugleiste. */
+.ansicht{
+  display:inline-flex; gap:2px; padding:2px; margin-right:4px;
+  border:1px solid var(--line-2); border-radius:8px; background:var(--surface-2);
+}
+.ansicht button{
+  border:0; background:transparent; color:var(--muted); cursor:pointer;
+  font-family:inherit; font-size:12.5px; font-weight:500;
+  padding:5px 12px; border-radius:6px;
+}
+.ansicht button[aria-selected="true"]{
+  background:var(--surface); color:var(--ink); box-shadow:0 1px 2px rgba(0,0,0,.08);
+}
+
+/* Die Linie liegt als ::before hinter den Einträgen, die Punkte sitzen darauf.
+   Beide teilen sich dieselbe Mitte bei 7px, sonst läuft der Punkt neben der Linie. */
+.zeit{position:relative; padding-left:26px}
+.zeit::before{
+  content:""; position:absolute; left:6px; top:7px; bottom:7px;
+  width:2px; background:var(--accent-line); border-radius:2px;
+}
+.zeit.leer{padding-left:0}
+.zeit.leer::before{display:none}
+.zeit-item{position:relative; padding-bottom:26px}
+.zeit-item:last-child{padding-bottom:0}
+.zeit-item::before{
+  content:""; position:absolute; left:-26px; top:4px;
+  width:10px; height:10px; border-radius:50%;
+  background:var(--accent); border:2px solid var(--bg);
+}
+.zeit-wann{
+  font-family:"IBM Plex Sans", sans-serif; font-size:12px; font-weight:600;
+  letter-spacing:.09em; text-transform:uppercase; color:var(--accent);
+}
+.zeit-was{
+  font-family:"Fraunces", Georgia, serif; font-size:19px; font-weight:600;
+  color:var(--ink); letter-spacing:-.01em; margin-top:2px;
+}
+.zeit-text{
+  font-family:"Source Serif 4", Georgia, serif; font-size:16px; line-height:1.6;
+  color:var(--ink-2); margin:4px 0 0;
+}
+.zeit-tools{display:flex; gap:4px; margin-top:8px}
+.zeit-leer{color:var(--muted); font-size:14px; margin:0 0 4px}
+.zeit-add{margin-top:18px}
 .table-wrap{overflow-x:auto; margin:0 0 18px}
 .doc table{border-collapse:collapse; font-size:15px; width:auto; max-width:100%}
 .doc th, .doc td{
@@ -350,11 +397,16 @@ h2.title{
 .field input{
   border:1px solid var(--line-2); background:var(--bg); border-radius:7px; padding:9px 11px; font-size:15px;
 }
-.field input:focus{outline:2px solid var(--accent); outline-offset:-1px; border-color:transparent}
+.field textarea{
+  border:1px solid var(--line-2); background:var(--bg); border-radius:7px; padding:9px 11px;
+  font-size:15px; font-family:inherit; min-height:78px; resize:vertical;
+}
+.field input:focus, .field textarea:focus{outline:2px solid var(--accent); outline-offset:-1px; border-color:transparent}
 .field input[aria-invalid="true"]{border-color:var(--danger); background:var(--danger-soft)}
 .modal-warn{margin:0; font-size:13px; color:var(--danger); font-weight:500}
 .modal-warn[hidden]{display:none}
 .modal-actions{display:flex; justify-content:flex-end; gap:8px; margin-top:2px}
+.stack{display:flex; flex-direction:column; gap:12px}
 .row2{display:flex; gap:10px}
 .row2 .field:first-child{width:88px; flex:none}
 .row2 .field:last-child{flex:1}
@@ -621,6 +673,9 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
   var dirty = false;
   var editing = false;
   var draft = null;
+  /* Welche Ansicht ein Thema zeigt: den geschriebenen Text oder den Zeitstrahl.
+     Wird beim Themenwechsel zurückgesetzt, damit man immer beim Text landet. */
+  var ansicht = "text";
   var readOnly = false;
   var activeSync = null;
   var homeEditing = false;
@@ -1091,12 +1146,21 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
     var fields = opts.fields || [];
     var inputsHtml = fields
       .map(function (f) {
+        var kopf =
+          '<div class="field"><label for="f-' + f.key + '">' + esc(f.label) + "</label>";
+        /* Wo längerer Text hineingehört, ein mehrzeiliges Feld — ohne die
+           Tastatur-Bremsen unten, die nur für Adressen und Passwörter gedacht sind. */
+        if (f.multi) {
+          return (
+            kopf +
+            '<textarea id="f-' + f.key + '" rows="4"' +
+            (f.placeholder ? ' placeholder="' + esc(f.placeholder) + '"' : "") +
+            ">" + esc(f.value || "") + "</textarea></div>"
+          );
+        }
         return (
-          '<div class="field"><label for="f-' +
-          f.key +
-          '">' +
-          esc(f.label) +
-          '</label><input id="f-' +
+          kopf +
+          '<input id="f-' +
           f.key +
           '" value="' +
           esc(f.value || "") +
@@ -1115,7 +1179,7 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
       "<h3>" + esc(opts.title) + "</h3>" +
       (opts.text ? "<p>" + esc(opts.text) + "</p>" : "") +
       (fields.length
-        ? '<div class="' + (fields.length > 1 && !opts.stack ? "row2" : "") + '">' + inputsHtml + "</div>"
+        ? '<div class="' + (fields.length > 1 && !opts.stack ? "row2" : "stack") + '">' + inputsHtml + "</div>"
         : "") +
       '<p class="modal-warn" hidden></p>' +
       '<div class="modal-actions">' +
@@ -1128,7 +1192,7 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
       "</div></div>";
 
     overlayEl.appendChild(scrim);
-    var first = scrim.querySelector("input");
+    var first = scrim.querySelector("input, textarea");
     if (first) {
       first.focus();
       first.select();
@@ -1141,7 +1205,7 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
       document.removeEventListener("keydown", onKey);
     }
     var warnEl = scrim.querySelector(".modal-warn");
-    [].slice.call(scrim.querySelectorAll("input")).forEach(function (el) {
+    [].slice.call(scrim.querySelectorAll("input, textarea")).forEach(function (el) {
       el.addEventListener("input", function () {
         el.removeAttribute("aria-invalid");
         warnEl.hidden = true;
@@ -1170,7 +1234,10 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
     }
     function onKey(e) {
       if (e.key === "Escape") close();
-      if (e.key === "Enter" && scrim.contains(document.activeElement)) submit();
+      /* Enter schickt ab — außer im mehrzeiligen Feld, dort ist es ein Umbruch. */
+      var aktiv = document.activeElement;
+      if (e.key === "Enter" && aktiv && aktiv.tagName === "TEXTAREA") return;
+      if (e.key === "Enter" && scrim.contains(aktiv)) submit();
     }
 
     scrim.addEventListener("click", function (e) {
@@ -1548,6 +1615,152 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
     bar.appendChild(del);
   }
 
+  /* ---------- Zeitstrahl ---------- */
+
+  /* Zweite, eigenständige Ansicht eines Themas: eine geordnete Liste aus
+     Zeitangabe, Ereignis und optionaler Beschreibung. Die Zeitangabe ist
+     bewusst freier Text ("1789", "vor 66 Mio. Jahren") — deshalb wird nichts
+     automatisch sortiert, die Reihenfolge macht man mit den Pfeilen. */
+  function zeitListe(t) {
+    return (t && t.zeit) || [];
+  }
+
+  function zeitDialog(topic, e) {
+    var neu = !e;
+    modal({
+      title: neu ? "Neuer Eintrag" : "Eintrag bearbeiten",
+      stack: true,
+      fields: [
+        { key: "wann", label: "Wann", value: neu ? "" : e.wann,
+          placeholder: "z. B. 1789 oder vor 66 Mio. Jahren", required: true },
+        { key: "was", label: "Ereignis", value: neu ? "" : e.was,
+          placeholder: "z. B. Französische Revolution", required: true },
+        { key: "text", label: "Beschreibung (kann leer bleiben)",
+          value: neu ? "" : (e.text || ""), multi: true }
+      ],
+      confirm: neu ? "Anlegen" : "Speichern",
+      onOk: function (v) {
+        snapshot();
+        if (neu) {
+          if (!topic.zeit) topic.zeit = [];
+          topic.zeit.push({ id: uid("z"), wann: v.wann, was: v.was, text: v.text });
+        } else {
+          e.wann = v.wann;
+          e.was = v.was;
+          e.text = v.text;
+        }
+        markDirty();
+        render();
+      }
+    });
+  }
+
+  function zeitVerschieben(topic, i, richtung) {
+    var liste = zeitListe(topic);
+    var ziel = i + richtung;
+    if (ziel < 0 || ziel >= liste.length) return;
+    snapshot();
+    liste.splice(ziel, 0, liste.splice(i, 1)[0]);
+    markDirty();
+    render();
+  }
+
+  function zeitLoeschen(topic, i) {
+    snapshot();
+    zeitListe(topic).splice(i, 1);
+    markDirty();
+    render();
+    toast("Eintrag gelöscht — mit \u21B6 oben zurückholen.");
+  }
+
+  function buildZeit(topic, bearbeiten) {
+    var wrap = document.createElement("div");
+    var liste = zeitListe(topic);
+
+    var box = document.createElement("div");
+    /* ohne Einträge keine Linie — sonst steht ein Strich im Leeren */
+    box.className = "zeit" + (liste.length ? "" : " leer");
+    wrap.appendChild(box);
+
+    if (!liste.length) {
+      var leer = document.createElement("p");
+      leer.className = "zeit-leer";
+      leer.textContent = bearbeiten
+        ? "Noch keine Einträge."
+        : "Für dieses Thema gibt es noch keinen Zeitstrahl.";
+      box.appendChild(leer);
+    }
+
+    liste.forEach(function (e, i) {
+      var item = document.createElement("div");
+      item.className = "zeit-item";
+      item.innerHTML =
+        '<div class="zeit-wann">' + esc(e.wann || "") + "</div>" +
+        '<div class="zeit-was">' + esc(e.was || "") + "</div>" +
+        (e.text ? '<p class="zeit-text">' + esc(e.text) + "</p>" : "");
+
+      if (bearbeiten) {
+        var tools = document.createElement("div");
+        tools.className = "zeit-tools";
+        [
+          ["\u270E", "Eintrag bearbeiten", false, function () { zeitDialog(topic, e); }],
+          ["\u2191", "Nach oben", i === 0, function () { zeitVerschieben(topic, i, -1); }],
+          ["\u2193", "Nach unten", i === liste.length - 1, function () { zeitVerschieben(topic, i, 1); }],
+          ["\u2715", "Eintrag löschen", false, function () { zeitLoeschen(topic, i); }]
+        ].forEach(function (f) {
+          var b = document.createElement("button");
+          b.type = "button";
+          b.className = "btn sm" + (f[0] === "\u2715" ? " danger" : "");
+          b.textContent = f[0];
+          b.title = f[1];
+          b.setAttribute("aria-label", f[1]);
+          b.disabled = f[2];
+          b.addEventListener("click", f[3]);
+          tools.appendChild(b);
+        });
+        item.appendChild(tools);
+      } else {
+        item.title = "Doppelklick zum Bearbeiten";
+        item.addEventListener("dblclick", startEditing);
+      }
+      box.appendChild(item);
+    });
+
+    if (bearbeiten) {
+      var add = document.createElement("button");
+      add.type = "button";
+      add.className = "btn primary zeit-add";
+      add.textContent = "+ Eintrag";
+      add.addEventListener("click", function () {
+        zeitDialog(topic, null);
+      });
+      wrap.appendChild(add);
+    }
+    return wrap;
+  }
+
+  function buildAnsichtSchalter() {
+    var box = document.createElement("div");
+    box.className = "ansicht";
+    box.setAttribute("role", "tablist");
+    [["text", "Text"], ["zeit", "Zeitstrahl"]].forEach(function (f) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.setAttribute("role", "tab");
+      b.setAttribute("aria-selected", ansicht === f[0] ? "true" : "false");
+      b.textContent = f[1];
+      b.addEventListener("click", function () {
+        if (ansicht === f[0]) return;
+        /* Angefangenen Text nicht verlieren, wenn mitten im Schreiben umgeschaltet wird */
+        if (editing && ansicht === "text") commitDraft();
+        ansicht = f[0];
+        render();
+      });
+      box.appendChild(b);
+    });
+    return box;
+  }
+
   function renderMain() {
     var cur = current();
     sheetEl.innerHTML = "";
@@ -1576,6 +1789,12 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
     bar.className = "toolbar";
     sheetEl.appendChild(bar);
 
+    /* Der Umschalter erscheint, sobald es einen Zeitstrahl gibt — und im
+       Bearbeiten-Modus immer, sonst käme man an einen neuen nie heran. */
+    var hatZeit = zeitListe(cur.topic).length > 0;
+    if (!hatZeit && !editing) ansicht = "text";
+    if (hatZeit || editing) bar.appendChild(buildAnsichtSchalter());
+
     if (editing) {
       var done = document.createElement("button");
       done.className = "btn primary";
@@ -1594,10 +1813,14 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
         render();
       });
       bar.appendChild(done);
-      bar.appendChild(cancel);
+      /* "Verwerfen" gilt dem angefangenen Text — Zeitstrahl-Änderungen sind
+         sofort wirksam und werden stattdessen über Rückgängig zurückgeholt. */
+      if (ansicht === "text") bar.appendChild(cancel);
       appendTopicTools(bar, cur);
 
-      sheetEl.appendChild(buildEditor(cur.topic));
+      sheetEl.appendChild(
+        ansicht === "zeit" ? buildZeit(cur.topic, true) : buildEditor(cur.topic)
+      );
       return;
     }
 
@@ -1606,6 +1829,11 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
     edit.textContent = "Bearbeiten";
     edit.addEventListener("click", startEditing);
     bar.appendChild(edit);
+
+    if (ansicht === "zeit") {
+      sheetEl.appendChild(buildZeit(cur.topic, false));
+      return;
+    }
 
     if (!isEmptyHtml(cur.topic.html)) {
       var doc = document.createElement("article");
@@ -3196,6 +3424,8 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
     else if (editing) commitDraft();
     editing = false;
     draft = null;
+    /* Jedes Thema öffnet beim Text, nicht dort, wo man zuletzt war. */
+    ansicht = "text";
     state.selected = id;
     render();
     document.querySelector(".main").scrollTop = 0;
@@ -3432,7 +3662,7 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
 
   /* Sichtbarer Baustand — damit man sofort sieht, ob der Browser noch eine
      alte Fassung im Zwischenspeicher hat. Steht im Verbindungs-Dialog. */
-  var BAUSTAND = "03.09.2026 14:16";
+  var BAUSTAND = "07.09.2026 13:53";
 
   var CFG_KEY = "tg-server";
   var cfg = null;
@@ -3584,6 +3814,7 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
       g.topics.forEach(function (t) {
         if (typeof t.html !== "string") t.html = "";
         delete t.body;
+        if (t.zeit && (!Array.isArray(t.zeit) || !t.zeit.length)) delete t.zeit;
       });
     });
   }
