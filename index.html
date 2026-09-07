@@ -1698,13 +1698,17 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
         snapshot();
         if (neu) {
           if (!topic.zeit) topic.zeit = [];
-          var eintrag = { id: uid("z"), wann: v.wann, was: v.was, text: v.text };
+          var eintrag = { id: uid("z"), wann: v.wann, was: v.was };
+          if (v.text) eintrag.text = v.text;
           if (punkte.length) eintrag.punkte = punkte;
           topic.zeit.push(eintrag);
         } else {
           e.wann = v.wann;
           e.was = v.was;
-          e.text = v.text;
+          /* Geleerte Felder ganz entfernen statt als leeren Wert behalten —
+             sonst sammeln sich unsichtbare Reste im gespeicherten Stand. */
+          if (v.text) e.text = v.text;
+          else delete e.text;
           if (punkte.length) e.punkte = punkte;
           else delete e.punkte;
         }
@@ -3757,7 +3761,7 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
 
   /* Sichtbarer Baustand — damit man sofort sieht, ob der Browser noch eine
      alte Fassung im Zwischenspeicher hat. Steht im Verbindungs-Dialog. */
-  var BAUSTAND = "07.09.2026 14:37";
+  var BAUSTAND = "07.09.2026 14:43";
 
   var CFG_KEY = "tg-server";
   var cfg = null;
@@ -3912,6 +3916,7 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
         if (t.zeit && (!Array.isArray(t.zeit) || !t.zeit.length)) delete t.zeit;
         (t.zeit || []).forEach(function (e) {
           if (e.punkte && (!Array.isArray(e.punkte) || !e.punkte.length)) delete e.punkte;
+          if (typeof e.text === "string" && !e.text.trim()) delete e.text;
         });
       });
     });
