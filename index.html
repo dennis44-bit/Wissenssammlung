@@ -258,7 +258,11 @@ h2.title{
 .doc li > ul, .doc li > ol{margin:0}
 /* Einrücken per Tab: reine Verschiebung nach rechts, keine Zitat-Optik */
 .doc blockquote{margin:0 0 0 22px; padding:0; border:0}
-.doc strong{color:var(--ink); font-weight:600}
+/* <b> und <strong> müssen gleich aussehen: Der Fett-Knopf erzeugt <b>,
+   eingefügter Text bringt meist <strong> mit. Beim Sichern wird ohnehin
+   alles zu <strong> vereinheitlicht (siehe RENAME), das hier greift
+   schon vorher — direkt beim Tippen im Editor. */
+.doc strong, .doc b{color:var(--ink); font-weight:600}
 .doc code{
   font-family:"IBM Plex Sans", monospace; font-size:.88em;
   background:var(--surface-2); padding:1px 5px; border-radius:4px;
@@ -2622,7 +2626,9 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
        plattgemacht, deshalb war jede Einrückung nach dem Speichern weg */
     BLOCKQUOTE: 1
   };
-  var RENAME = { DIV: "p", H1: "h3", H2: "h3", H6: "h5" };
+  /* B und I kommen vom Fett-/Kursiv-Knopf (execCommand), STRONG und EM aus
+     eingefügtem Text. Beim Sichern wird daraus jeweils eine Sorte. */
+  var RENAME = { DIV: "p", H1: "h3", H2: "h3", H6: "h5", B: "strong", I: "em" };
 
   function sanitize(html) {
     var box = document.createElement("div");
@@ -3860,7 +3866,7 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
 
   /* Sichtbarer Baustand — damit man sofort sieht, ob der Browser noch eine
      alte Fassung im Zwischenspeicher hat. Steht im Verbindungs-Dialog. */
-  var BAUSTAND = "07.09.2026 14:56";
+  var BAUSTAND = "10.09.2026 15:06";
 
   var CFG_KEY = "tg-server";
   var cfg = null;
