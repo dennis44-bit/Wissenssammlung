@@ -1923,7 +1923,10 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
       }
 
       item.title = "Doppelklick zum Bearbeiten";
-      item.addEventListener("dblclick", startEditing);
+      item.addEventListener("dblclick", function () {
+        vomDoppelklick = true;
+        startEditing();
+      });
       box.appendChild(item);
     });
 
@@ -2041,7 +2044,16 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
       doc.className = "doc";
       doc.title = "Doppelklick zum Bearbeiten";
       doc.innerHTML = displayHtml(cur.topic.html);
-      doc.addEventListener("dblclick", startEditing);
+      doc.addEventListener("dblclick", function () {
+        /* Der Doppelklick markiert ein Wort — dessen Anfang ist die Stelle,
+           an der der Cursor gleich stehen soll. */
+        var sel = window.getSelection();
+        if (sel && sel.rangeCount && doc.contains(sel.anchorNode)) {
+          zeichenZiel = zeichenPositionIn(doc, sel.anchorNode, sel.anchorOffset);
+        }
+        vomDoppelklick = true;
+        startEditing();
+      });
       var toc = buildToc(doc, function (h) {
         /* hart, nicht weich: weiches Scrollen in diesem Behälter wird in
            manchen Browsern verworfen und der Sprung passiert dann gar nicht */
@@ -2610,10 +2622,92 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
     return { box: box, refresh: refresh };
   }
 
+  /* Beim Doppelklick in den gelesenen Text soll der Cursor im Editor an
+     derselben Stelle stehen, statt dass die Ansicht nach oben springt.
+     Gemerkt wird die Zeichenposition, nicht das Element: Lesen und Schreiben
+     bauen ihr HTML minimal verschieden auf (Tabellen bekommen beim Lesen eine
+     Hülle), der Text darin ist aber identisch. */
+  var zeichenZiel = null;
+  /* Der Editor setzt Cursor und Blätterhöhe beim Öffnen normalerweise zurück
+     (Einstieg über den Bearbeiten-Knopf). Beim Doppelklick soll er das nicht —
+     dort ist die Stelle ja schon gewählt. */
+  var vomDoppelklick = false;
+
+  function zeichenPositionIn(wurzel, knoten, versatz) {
+    if (!knoten || knoten.nodeType !== 3) return null;
+    var n = 0;
+    var gefunden = false;
+    function lauf(el) {
+      for (var k = el.firstChild; k && !gefunden; k = k.nextSibling) {
+        if (k === knoten) {
+          n += versatz;
+          gefunden = true;
+          return;
+        }
+        if (k.nodeType === 3) n += k.nodeValue.length;
+        else lauf(k);
+      }
+    }
+    lauf(wurzel);
+    return gefunden ? n : null;
+  }
+
+  function cursorAufZeichen(wurzel, ziel) {
+    var n = 0;
+    var treffer = null;
+    function lauf(el) {
+      for (var k = el.firstChild; k && !treffer; k = k.nextSibling) {
+        if (k.nodeType === 3) {
+          var laenge = k.nodeValue.length;
+          if (n + laenge >= ziel) {
+            treffer = { knoten: k, versatz: ziel - n };
+            return;
+          }
+          n += laenge;
+        } else lauf(k);
+      }
+    }
+    lauf(wurzel);
+    if (!treffer) return null;
+    var r = document.createRange();
+    r.setStart(treffer.knoten, Math.min(treffer.versatz, treffer.knoten.nodeValue.length));
+    r.collapse(true);
+    var sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(r);
+    return treffer.knoten;
+  }
+
   function startEditing() {
+    var main = document.querySelector(".main");
+    var hoeheVorher = main ? main.scrollTop : 0;
     draft = null;
     editing = true;
     render();
+
+    if (!vomDoppelklick) {
+      zeichenZiel = null;
+      return;
+    }
+    var box = sheetEl.querySelector(".doc.editable");
+    var gesetzt = false;
+    if (box && zeichenZiel !== null) {
+      try {
+        box.focus({ preventScroll: true });
+      } catch (e) {
+        box.focus();
+      }
+      var knoten = cursorAufZeichen(box, zeichenZiel);
+      if (knoten && knoten.parentElement) {
+        knoten.parentElement.scrollIntoView({ block: "center", behavior: "auto" });
+        gesetzt = true;
+      }
+    }
+    zeichenZiel = null;
+    vomDoppelklick = false;
+    /* Ohne Cursorziel wenigstens die Blätterhöhe halten — etwa beim
+       Doppelklick auf einen Zeitstrahl-Eintrag. */
+    if (!gesetzt && main) main.scrollTop = hoeheVorher;
   }
 
   /* ---------- editor ---------- */
@@ -3593,7 +3687,17 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
       }
     };
 
+    /* Beim Bauen festhalten, wie der Editor geöffnet wurde — der Merker wird
+       noch im selben Durchlauf zurückgesetzt, dieses setTimeout läuft später. */
+    var kamVomDoppelklick = vomDoppelklick;
+
     setTimeout(function () {
+      /* Nach einem Doppelklick stehen Cursor und Blätterhöhe schon richtig;
+         hier zurückzusetzen würde die Ansicht nach oben reißen. */
+      if (kamVomDoppelklick) {
+        syncTools();
+        return;
+      }
       try {
         box.focus({ preventScroll: true });
       } catch (e) {
@@ -3866,7 +3970,7 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
 
   /* Sichtbarer Baustand — damit man sofort sieht, ob der Browser noch eine
      alte Fassung im Zwischenspeicher hat. Steht im Verbindungs-Dialog. */
-  var BAUSTAND = "10.09.2026 15:06";
+  var BAUSTAND = "10.09.2026 16:06";
 
   var CFG_KEY = "tg-server";
   var cfg = null;
