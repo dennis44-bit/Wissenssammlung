@@ -1066,6 +1066,14 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
     statusText.textContent = "Nicht gesichert";
   }
 
+  /* "Sichern" ist im Bearbeiten-Modus auch der Weg zurück in die normale
+     Ansicht — der Knopf bleibt deshalb anklickbar, selbst wenn man nichts
+     geändert hat. */
+  function syncSaveBtn() {
+    if (readOnly) return;
+    saveBtn.disabled = !dirty && !editing && !homeEditing;
+  }
+
   function goReadOnly() {
     readOnly = true;
     saveBtn.disabled = true;
@@ -3723,6 +3731,7 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
     renderRail();
     renderMain();
     syncUndo();
+    syncSaveBtn();
   }
 
   function select(id) {
@@ -3970,7 +3979,7 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
 
   /* Sichtbarer Baustand — damit man sofort sieht, ob der Browser noch eine
      alte Fassung im Zwischenspeicher hat. Steht im Verbindungs-Dialog. */
-  var BAUSTAND = "10.09.2026 16:06";
+  var BAUSTAND = "23.09.2026 17:34";
 
   var CFG_KEY = "tg-server";
   var cfg = null;
@@ -4048,6 +4057,9 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
     draft = null;
     homeDraft = null;
     render();
+    /* Nichts geändert: Der Knopf hat nur den Bearbeiten-Modus beendet,
+       hochzuladen gibt es nichts. */
+    if (!dirty) return;
     if (readOnly || !cfgOk(cfg)) {
       toast("Keine Verbindung zum Speicher. Tippe oben auf den Stand, um sie einzurichten.");
       return;
