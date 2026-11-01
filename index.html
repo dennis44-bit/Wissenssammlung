@@ -429,6 +429,12 @@ h2.title{
 .fmt-sep{width:1px; height:17px; background:var(--line); margin:0 5px; flex:none}
 .fmt-spacer{flex:1}
 .fmt.toggle[aria-pressed="true"]{background:var(--accent-soft); color:var(--accent-ink)}
+/* Notnagel für Browser, die das Kleben oben nicht mitmachen */
+.fmtbar.fixiert{
+  position:fixed; border-bottom:1px solid var(--line-2); border-radius:10px;
+  box-shadow:0 8px 20px rgba(0,0,0,.3);
+}
+.fmtbar-platz{flex:none}
 
 .editable{
   min-height:120px; background:var(--surface);
@@ -2052,13 +2058,11 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
       doc.className = "doc";
       doc.title = "Doppelklick zum Bearbeiten";
       doc.innerHTML = displayHtml(cur.topic.html);
-      doc.addEventListener("dblclick", function () {
-        /* Der Doppelklick markiert ein Wort — dessen Anfang ist die Stelle,
-           an der der Cursor gleich stehen soll. */
-        var sel = window.getSelection();
-        if (sel && sel.rangeCount && doc.contains(sel.anchorNode)) {
-          zeichenZiel = zeichenPositionIn(doc, sel.anchorNode, sel.anchorOffset);
-        }
+      doc.addEventListener("dblclick", function (e) {
+        /* Die Stelle unter dem Zeiger ist das Ziel — und die Höhe, auf der
+           getippt wurde, damit der Text beim Umschalten nicht wegspringt. */
+        zeichenZiel = zielAusKlick(doc, e);
+        klickHoehe = e && typeof e.clientY === "number" ? e.clientY : null;
         vomDoppelklick = true;
         startEditing();
       });
@@ -2641,6 +2645,61 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
      dort ist die Stelle ja schon gewählt. */
   var vomDoppelklick = false;
 
+  /* Höhe des Doppelklicks auf dem Bildschirm — danach wird der Text im
+     Editor ausgerichtet, damit die Stelle dort bleibt, wo getippt wurde. */
+  var klickHoehe = null;
+
+  /* Der Punkt unter dem Zeiger ist die verlässlichste Quelle: Safari legt die
+     Auswahl beim Doppelklick manchmal auf den Absatz statt in den Text, dann
+     käme über die Auswahl gar keine Stelle heraus. */
+  function stelleAusPunkt(e) {
+    if (!e || typeof e.clientX !== "number") return null;
+    var r = null;
+    if (document.caretRangeFromPoint) {
+      r = document.caretRangeFromPoint(e.clientX, e.clientY);
+      if (r && r.startContainer && r.startContainer.nodeType === 3) {
+        return { knoten: r.startContainer, versatz: r.startOffset };
+      }
+    }
+    if (document.caretPositionFromPoint) {
+      var p = document.caretPositionFromPoint(e.clientX, e.clientY);
+      if (p && p.offsetNode && p.offsetNode.nodeType === 3) {
+        return { knoten: p.offsetNode, versatz: p.offset };
+      }
+    }
+    return null;
+  }
+
+  function ersterTextknoten(el) {
+    if (!el) return null;
+    if (el.nodeType === 3) return el;
+    for (var k = el.firstChild; k; k = k.nextSibling) {
+      var t = ersterTextknoten(k);
+      if (t) return t;
+    }
+    return null;
+  }
+
+  function zielAusKlick(wurzel, e) {
+    var stelle = stelleAusPunkt(e);
+    if (stelle && wurzel.contains(stelle.knoten)) {
+      var p = zeichenPositionIn(wurzel, stelle.knoten, stelle.versatz);
+      if (p !== null) return p;
+    }
+    var sel = window.getSelection();
+    if (!sel || !sel.rangeCount || !sel.anchorNode || !wurzel.contains(sel.anchorNode)) return null;
+    var knoten = sel.anchorNode;
+    var versatz = sel.anchorOffset;
+    if (knoten.nodeType !== 3) {
+      /* Auswahl auf einem Element: in den Text darin hineingehen */
+      var t = ersterTextknoten(knoten.childNodes[versatz] || knoten.lastChild);
+      if (!t) return null;
+      knoten = t;
+      versatz = 0;
+    }
+    return zeichenPositionIn(wurzel, knoten, versatz);
+  }
+
   function zeichenPositionIn(wurzel, knoten, versatz) {
     if (!knoten || knoten.nodeType !== 3) return null;
     var n = 0;
@@ -2686,32 +2745,64 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
     return treffer.knoten;
   }
 
+  /* Den Text so verschieben, dass der Cursor auf der Höhe steht, auf der
+     getippt wurde — nicht in der Mitte und nicht oben. */
+  function cursorInsBild(main, knoten, zielHoehe) {
+    if (!main || !knoten) return;
+    var sel = window.getSelection();
+    var r = sel && sel.rangeCount ? sel.getRangeAt(0).getBoundingClientRect() : null;
+    var oben = r && (r.top || r.height) ? r.top : null;
+    if (oben === null && knoten.parentElement) oben = knoten.parentElement.getBoundingClientRect().top;
+    if (oben === null) return;
+    var kasten = main.getBoundingClientRect();
+    if (zielHoehe === null || zielHoehe === undefined) {
+      /* Ohne bekannte Klickhöhe nur dann rücken, wenn die Stelle gar nicht
+         zu sehen ist. */
+      if (oben > kasten.top + 60 && oben < kasten.bottom - 40) return;
+      zielHoehe = kasten.top + kasten.height * 0.4;
+    }
+    /* Nicht unter die Formatleiste schieben, sonst steht der Cursor dahinter. */
+    var leiste = sheetEl.querySelector(".fmtbar");
+    var mindestens = kasten.top + (leiste ? leiste.getBoundingClientRect().height : 0) + 12;
+    if (zielHoehe < mindestens) zielHoehe = mindestens;
+    if (zielHoehe > kasten.bottom - 40) zielHoehe = kasten.bottom - 40;
+    main.scrollTop += oben - zielHoehe;
+  }
+
   function startEditing() {
     var main = document.querySelector(".main");
     var hoeheVorher = main ? main.scrollTop : 0;
+    var zielHoehe = klickHoehe;
+    var ziel = zeichenZiel;
     draft = null;
     editing = true;
     render();
 
-    if (!vomDoppelklick) {
-      zeichenZiel = null;
-      return;
-    }
+    zeichenZiel = null;
+    klickHoehe = null;
+    if (!vomDoppelklick) return;
     var box = sheetEl.querySelector(".doc.editable");
     var gesetzt = false;
-    if (box && zeichenZiel !== null) {
+    if (box && ziel !== null) {
       try {
         box.focus({ preventScroll: true });
       } catch (e) {
         box.focus();
       }
-      var knoten = cursorAufZeichen(box, zeichenZiel);
-      if (knoten && knoten.parentElement) {
-        knoten.parentElement.scrollIntoView({ block: "center", behavior: "auto" });
+      var knoten = cursorAufZeichen(box, ziel);
+      if (knoten) {
+        cursorInsBild(main, knoten, zielHoehe);
         gesetzt = true;
+        /* Safari rückt den Cursor beim Fokussieren gern selbst an den Anfang —
+           deshalb gleich danach noch einmal setzen. */
+        setTimeout(function () {
+          var b = editing ? sheetEl.querySelector(".doc.editable") : null;
+          if (!b || document.activeElement !== b) return;
+          var k2 = cursorAufZeichen(b, ziel);
+          if (k2) cursorInsBild(main, k2, zielHoehe);
+        }, 0);
       }
     }
-    zeichenZiel = null;
     vomDoppelklick = false;
     /* Ohne Cursorziel wenigstens die Blätterhöhe halten — etwa beim
        Doppelklick auf einen Zeitstrahl-Eintrag. */
@@ -2848,6 +2939,77 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
       n = n.parentNode;
     }
     return null;
+  }
+
+  /* Die Formatleiste klebt per CSS oben am Rand. Safari lässt sie in der
+     App-Ansicht beim Tippen aber mitwandern — dann wird sie hier von Hand
+     festgehalten. Wo das CSS tut, was es soll, passiert nichts. */
+  function leisteFesthalten(ed, bar, box) {
+    var main = document.querySelector(".main");
+    if (!main) return;
+    var platz = document.createElement("div");
+    platz.className = "fmtbar-platz";
+    var fest = false;
+    var geplant = false;
+
+    function loesen() {
+      if (!fest) return;
+      fest = false;
+      bar.classList.remove("fixiert");
+      bar.style.left = bar.style.top = bar.style.width = "";
+      if (platz.parentNode) platz.parentNode.removeChild(platz);
+    }
+
+    function messen() {
+      geplant = false;
+      if (!document.body.contains(bar)) {
+        main.removeEventListener("scroll", anstossen);
+        window.removeEventListener("resize", anstossen);
+        if (window.visualViewport) {
+          window.visualViewport.removeEventListener("resize", anstossen);
+          window.visualViewport.removeEventListener("scroll", anstossen);
+        }
+        return;
+      }
+      var kasten = main.getBoundingClientRect();
+      var rand = box.getBoundingClientRect();
+      var leiste = bar.getBoundingClientRect();
+      /* Noch Platz zum Schreiben sichtbar? Sonst darf die Leiste weg. */
+      var gebraucht = rand.top < kasten.top && rand.bottom > kasten.top + 60;
+      if (fest) {
+        if (!gebraucht) loesen();
+        else {
+          bar.style.top = kasten.top + "px";
+          bar.style.left = platz.getBoundingClientRect().left + "px";
+          bar.style.width = platz.offsetWidth + "px";
+        }
+        return;
+      }
+      /* Klebt sie von selbst, steht ihre Oberkante am Rand des Fensters. */
+      if (!gebraucht || leiste.top >= kasten.top - 2) return;
+      platz.style.height = bar.offsetHeight + "px";
+      ed.insertBefore(platz, bar);
+      fest = true;
+      bar.classList.add("fixiert");
+      bar.style.top = kasten.top + "px";
+      bar.style.left = platz.getBoundingClientRect().left + "px";
+      bar.style.width = platz.offsetWidth + "px";
+    }
+
+    function anstossen() {
+      if (geplant) return;
+      geplant = true;
+      requestAnimationFrame(messen);
+    }
+
+    main.addEventListener("scroll", anstossen);
+    window.addEventListener("resize", anstossen);
+    /* Am Handy schiebt die Tastatur das Fenster — auch dann neu messen. */
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", anstossen);
+      window.visualViewport.addEventListener("scroll", anstossen);
+    }
+    anstossen();
   }
 
   function buildEditor(topic) {
@@ -3669,6 +3831,7 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
     ed.appendChild(bar);
     ed.appendChild(box);
     ed.appendChild(rowAdd);
+    leisteFesthalten(ed, bar, box);
 
     activeSync = syncTools;
     /* So kommt der Verlauf an den offenen Editor heran, statt den Text
@@ -3979,7 +4142,7 @@ p.home-eyebrow.home-field[contenteditable="true"]{display:inline-block}
 
   /* Sichtbarer Baustand — damit man sofort sieht, ob der Browser noch eine
      alte Fassung im Zwischenspeicher hat. Steht im Verbindungs-Dialog. */
-  var BAUSTAND = "23.09.2026 17:34";
+  var BAUSTAND = "01.11.2026 16:31";
 
   var CFG_KEY = "tg-server";
   var cfg = null;
